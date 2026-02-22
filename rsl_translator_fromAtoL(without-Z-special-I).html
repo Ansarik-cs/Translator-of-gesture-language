@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>РЖЯ — Распознавание жестового языка</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .video-container {
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .current-sign {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .sign-description {
+            text-align: center;
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .sentence-display {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            min-height: 60px;
+            word-wrap: break-word;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status.active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .legend {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .legend h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .legend-item {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .legend-item.command {
+            border-left-color: #f6ad55;
+        }
+
+        .legend-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+
+        .legend-item span {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .legend-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✋ Жестовый алфавит</h1>
+        <p>Распознавание букв русского жестового языка</p>
+    </div>
+
+    <div class="main-container">
+        <div class="status" id="status">
+            Нажмите «Запустить камеру» для начала...
+        </div>
+
+        <div class="video-container">
+            <video id="videoElement" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <div class="current-sign" id="currentSign">
+                ...
+            </div>
+            <div class="sign-description" id="signDescription">
+                Покажите жест чтобы начать
+            </div>
+            <div class="sentence-display" id="sentenceDisplay">
+                Здесь появится текст...
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">Запустить камеру</button>
+            <button class="btn btn-success" id="speakBtn" disabled>🔊 Озвучить текст</button>
+            <button class="btn btn-danger"  id="clearBtn">Очистить</button>
+        </div>
+
+        <div class="legend">
+            <h3>📖 Буквы и жесты</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <strong>А</strong>
+                    <span>Кулак, большой палец сбоку</span>
+                </div>
+                <div class="legend-item">
+                    <strong>Б</strong>
+                    <span>Указательный вверх, средний касается его фаланги</span>
+                </div>
+                <div class="legend-item">
+                    <strong>В</strong>
+                    <span>Открытая ладонь лицевой стороной к камере</span>
+                </div>
+                <div class="legend-item">
+                    <strong>Г</strong>
+                    <span>Указательный вниз, большой в сторону</span>
+                </div>
+                <div class="legend-item">
+                    <strong>Д</strong>
+                    <span>Указательный и средний горизонтально в сторону</span>
+                </div>
+                <div class="legend-item">
+                    <strong>Е</strong>
+                    <span>О-форма, боковая сторона (большой дальше от камеры)</span>
+                </div>
+                <div class="legend-item">
+                    <strong>Ж</strong>
+                    <span>Кисть вверх, пальцы прямые горизонтально («полка»)</span>
+                </div>
+                <div class="legend-item">
+                    <strong>И</strong>
+                    <span>Безымянный и мизинец вверх, ладонь к камере</span>
+                </div>
+                <div class="legend-item">
+                    <strong>К</strong>
+                    <span>Указательный и средний под углом ~45° в сторону</span>
+                </div>
+                <div class="legend-item">
+                    <strong>Л</strong>
+                    <span>V-форма пальцами вниз, тыльная сторона к камере</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+    <script>
+        // ─────────────────────────────────────────────────────────────────
+        //  CONFIGURATION
+        // ─────────────────────────────────────────────────────────────────
+        const TIME_THRESHOLD     = 0.5;   // seconds to hold before letter is accepted
+        const REPEAT_DELAY       = 1.0;   // seconds before the same letter repeats
+        const BACKSPACE_COOLDOWN = 0.8;
+
+        // ─────────────────────────────────────────────────────────────────
+        //  STATE
+        // ─────────────────────────────────────────────────────────────────
+        let sentence             = "";
+        let currentDisplayLetter = "";
+        let pendingLetter        = "";
+        let pendingStartTime     = 0;
+        let lastRepeatTime       = 0;
+        let lastBackspaceTime    = 0;
+        let lastLoggedLetter     = "";
+        let history              = [];
+
+        // ─────────────────────────────────────────────────────────────────
+        //  DOM ELEMENTS
+        // ─────────────────────────────────────────────────────────────────
+        const videoElement  = document.getElementById('videoElement');
+        const canvasElement = document.getElementById('canvas');
+        const canvasCtx     = canvasElement.getContext('2d');
+        const statusDiv     = document.getElementById('status');
+        const currentSignDiv = document.getElementById('currentSign');
+        const signDescDiv   = document.getElementById('signDescription');
+        const sentenceDiv   = document.getElementById('sentenceDisplay');
+        const startBtn      = document.getElementById('startBtn');
+        const speakBtn      = document.getElementById('speakBtn');
+        const clearBtn      = document.getElementById('clearBtn');
+
+        // ─────────────────────────────────────────────────────────────────
+        //  LETTER DESCRIPTIONS
+        // ─────────────────────────────────────────────────────────────────
+        const LETTER_DESC = {
+            "А": "Кулак, большой палец сбоку",
+            "Б": "Указательный вверх, средний касается его фаланги",
+            "В": "Открытая ладонь к камере",
+            "Г": "Указательный вниз, большой в сторону",
+            "Д": "Указательный + средний горизонтально в сторону",
+            "Е": "О-форма, боковая сторона (большой дальше от камеры)",
+            "Ж": "Кисть вверх, пальцы прямые горизонтально («полка»)",
+            "И": "Безымянный + мизинец вверх, ладонь к камере",
+            "К": "Указательный + средний под ~45° в сторону",
+            "Л": "V-форма пальцами вниз, тыльная сторона к камере",
+            "?": "Жест не распознан"
+        };
+
+        // ─────────────────────────────────────────────────────────────────
+        //  GEOMETRY HELPERS
+        // ─────────────────────────────────────────────────────────────────
+
+        // Angle at vertex B formed by A–B–C (degrees)
+        function calcAngle(a, b, c) {
+            const ba = [a.x - b.x, a.y - b.y];
+            const bc = [c.x - b.x, c.y - b.y];
+            const dot = ba[0] * bc[0] + ba[1] * bc[1];
+            const mag = Math.hypot(...ba) * Math.hypot(...bc);
+            if (mag === 0) return 0;
+            return Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  HAND ANALYSIS
+        //  Extracts all geometry needed by the classifiers.
+        // ─────────────────────────────────────────────────────────────────
+        function analyzeHand(lm) {
+            // Palm size: wrist (0) → middle MCP (9)
+            const palmSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.001;
+
+            // ── Finger bend angles and open/closed state ─────────────────
+            const fingerDefs = {
+                index:  [5,  6,  8],
+                middle: [9,  10, 12],
+                ring:   [13, 14, 16],
+                pinky:  [17, 18, 20],
+            };
+            const angles = {};
+            const state  = {};
+            for (const [name, [a, b, c]] of Object.entries(fingerDefs)) {
+                angles[name] = calcAngle(lm[a], lm[b], lm[c]);
+                state[name]  = angles[name] > 155 ? 'OPEN' : 'CLOSED';
+            }
+            angles.thumb = calcAngle(lm[1], lm[2], lm[4]);
+
+            // ── Palm orientation (direction of wrist→middle-MCP vector) ──
+            const vx = lm[9].x - lm[0].x;
+            const vy = lm[9].y - lm[0].y;
+            let orient;
+            if (Math.abs(vx) > Math.abs(vy)) orient = "SIDE";
+            else if (vy < 0)                  orient = "UP";
+            else                              orient = "DOWN";
+
+            // ── Index finger direction ────────────────────────────────────
+            const idx_dx   = lm[8].x - lm[5].x;
+            const idx_dy   = lm[8].y - lm[5].y;
+            const indexDir = Math.abs(idx_dx) > Math.abs(idx_dy) ? "H" : "V";
+
+            // ── Normalised distances ──────────────────────────────────────
+            const dThumbIndex  = Math.hypot(lm[4].x - lm[8].x,  lm[4].y - lm[8].y)  / palmSize;
+            const dThumbMiddle = Math.hypot(lm[4].x - lm[12].x, lm[4].y - lm[12].y) / palmSize;
+
+            // ── Z-depth proxy ─────────────────────────────────────────────
+            // Positive  → fingertips closer to camera than wrist = palm facing camera (frontal).
+            // Negative  → wrist closer to camera than fingertips = back of hand facing camera.
+            const zDepth = (lm[0].z || 0) - (lm[12].z || 0);
+
+            // ── Thumb depth relative to palm ─────────────────────────────
+            // For "Е" (side-view O): thumb should be FARTHER from camera than palm base.
+            // In MediaPipe, larger z = farther from camera.
+            const thumbBehindPalm = (lm[4].z || 0) > (lm[0].z || 0) + 0.01;
+
+            // ── Tips Y spread ─────────────────────────────────────────────
+            // Small spread means all fingertips are at the same height (horizontal plane).
+            // Used for "Ж" detection.
+            const tipsY       = [lm[8].y, lm[12].y, lm[16].y, lm[20].y];
+            const tipsSpreadY = Math.max(...tipsY) - Math.min(...tipsY);
+
+            // ── Index finger angle from vertical ─────────────────────────
+            // 0° = pointing straight up/down, 90° = pointing sideways.
+            const idxAngleFromVertical = Math.atan2(
+                Math.abs(lm[8].x - lm[5].x),
+                Math.abs(lm[8].y - lm[5].y)
+            ) * 180 / Math.PI;
+
+            // ── "Б" check: middle PIP near upper phalanx of index ────────
+            // Middle PIP (lm[10]) should be close in Y to index PIP (lm[6]).
+            const midPipNearIndexPip =
+                Math.abs(lm[10].y - lm[6].y) < palmSize * 0.35
+                && angles.middle > 80 && angles.middle < 155;
+
+            return {
+                state, angles, orient, indexDir, palmSize,
+                dThumbIndex, dThumbMiddle,
+                zDepth, thumbBehindPalm,
+                tipsSpreadY, idxAngleFromVertical,
+                midPipNearIndexPip,
+                lm
+            };
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  LETTER CLASSIFIERS
+        // ─────────────────────────────────────────────────────────────────
+
+        // А — closed fist; all four fingers bent; thumb to the side
+        function isА({ state }) {
+            return state.index  === 'CLOSED'
+                && state.middle === 'CLOSED'
+                && state.ring   === 'CLOSED'
+                && state.pinky  === 'CLOSED';
+        }
+
+        // Б — index straight up; middle slightly bent touching index phalanx;
+        //     ring & pinky closed
+        function isБ({ state, midPipNearIndexPip, orient }) {
+            return state.index  === 'OPEN'
+                && state.ring   === 'CLOSED'
+                && state.pinky  === 'CLOSED'
+                && midPipNearIndexPip
+                && orient !== 'DOWN';
+        }
+
+        // В — all 4 fingers open, thumb extended, palm FACING camera (positive zDepth)
+        function isВ({ state, angles, zDepth }) {
+            return state.index  === 'OPEN'
+                && state.middle === 'OPEN'
+                && state.ring   === 'OPEN'
+                && state.pinky  === 'OPEN'
+                && angles.thumb > 130
+                && zDepth > 0.02;       // fingertips closer than wrist → frontal palm
+        }
+
+        // Г — index pointing DOWN, thumb extended sideways, rest closed
+        function isГ({ state, angles, orient }) {
+            return state.index  === 'OPEN'
+                && state.middle === 'CLOSED'
+                && state.ring   === 'CLOSED'
+                && state.pinky  === 'CLOSED'
+                && angles.thumb > 130
+                && orient === 'DOWN';
+        }
+
+        // Д — index + middle open, pointing fully HORIZONTAL to the side (≥ 65° from vertical).
+        //     This is the "intermediate" frozen position of the rotation movement.
+        function isД({ state, idxAngleFromVertical, orient }) {
+            const uShape = state.index  === 'OPEN'
+                        && state.middle === 'OPEN'
+                        && state.ring   === 'CLOSED'
+                        && state.pinky  === 'CLOSED';
+            return uShape && idxAngleFromVertical >= 65 && orient === 'SIDE';
+        }
+
+        // Е — O-shape: all fingers bent, thumb clearly touching/near index+middle tips.
+        //     Key distinction from А (plain fist): in А the thumb lies to the side of
+        //     the fist with no pinch. In Е the thumb actively closes toward the fingers
+        //     forming a visible O — so dThumbIndex is noticeably small.
+        //     No orient constraint: the hand can be UP or angled (as seen in camera).
+        function isЕ({ state, angles, dThumbIndex, dThumbMiddle, lm, palmSize }) {
+            const allClosed = state.index  === 'CLOSED'
+                           && state.middle === 'CLOSED'
+                           && state.ring   === 'CLOSED'
+                           && state.pinky  === 'CLOSED';
+            // In А the thumb is extended to the side → dThumbIndex is larger (> 0.5)
+            // In Е the thumb closes toward fingers forming O → dThumbIndex is small
+            const thumbPinched = dThumbIndex < 0.38 && dThumbMiddle < 0.45;
+            // Extra check: thumb tip (lm[4]) should be clearly above (lower Y) or near
+            // the index/middle tips — not hanging to the wrist side
+            const thumbNearTips = lm[4].y < lm[5].y + palmSize * 0.3;
+            return allClosed && thumbPinched && thumbNearTips;
+        }
+
+        // Ж — hand oriented UP, all 4 fingers straight but folded FORWARD at the knuckle,
+        //     forming a horizontal "shelf". Shown from the side (not frontal).
+        //     Key: orient=UP, all fingers OPEN, tips at nearly the same Y, side view.
+        function isЖ({ state, orient, tipsSpreadY, palmSize, zDepth }) {
+            const allOpen = state.index  === 'OPEN'
+                         && state.middle === 'OPEN'
+                         && state.ring   === 'OPEN'
+                         && state.pinky  === 'OPEN';
+            // Tips spread little in Y → lying on the same horizontal plane
+            const tipsHorizontal = tipsSpreadY < palmSize * 0.5;
+            // Side view: not a frontal palm (zDepth near 0 or slightly negative)
+            const isSideView = zDepth < 0.05;
+            return allOpen && tipsHorizontal && isSideView && orient === 'UP';
+        }
+
+        // И — ring + pinky open pointing UP, index + middle + thumb closed,
+        //     palm facing camera. Both spread and together variants are accepted
+        //     since only open/closed state matters.
+        function isИ({ state, angles, orient, zDepth }) {
+            return state.index  === 'CLOSED'
+                && state.middle === 'CLOSED'
+                && state.ring   === 'OPEN'
+                && state.pinky  === 'OPEN'
+                && angles.thumb < 140
+                && orient === 'UP'
+                && zDepth > 0.0;            // palm toward camera
+        }
+
+        // К — index + middle open, tilted ~45° to the side (idxAngleFromVertical 28–64°),
+        //     ring + pinky closed. Orient is diagonal (between UP and SIDE).
+        function isК({ state, idxAngleFromVertical }) {
+            const uShape = state.index  === 'OPEN'
+                        && state.middle === 'OPEN'
+                        && state.ring   === 'CLOSED'
+                        && state.pinky  === 'CLOSED';
+            return uShape && idxAngleFromVertical >= 28 && idxAngleFromVertical < 65;
+        }
+
+        // Л — inverted peace sign: index + middle open pointing DOWN, back of hand to camera.
+        //     Ring + pinky closed.
+        //     "Fingers point down" = tips are lower on screen than their MCPs.
+        //     "Back of hand" = wrist landmark z is less than fingertip z
+        //     (in MediaPipe, larger z = farther from camera; back of hand means
+        //     the knuckles face the camera, so lm[0].z <= lm[9].z roughly).
+        //     We use a lenient check: just require fingersPointDown + vShape.
+        //     The zDepth check is relaxed so slight wrist angles still work.
+        function isЛ({ state, lm, zDepth }) {
+            const vShape = state.index  === 'OPEN'
+                        && state.middle === 'OPEN'
+                        && state.ring   === 'CLOSED'
+                        && state.pinky  === 'CLOSED';
+            // Tips must be below (greater Y in screen coords) their base knuckles
+            const fingersPointDown = lm[8].y > lm[5].y && lm[12].y > lm[9].y;
+            // Back of hand: wrist z should be less than (or close to) middle-MCP z.
+            // Relaxed: allow up to +0.06 tolerance so slight wrist tilts still pass.
+            const backOfHand = (lm[0].z || 0) <= (lm[9].z || 0) + 0.06;
+            return vShape && fingersPointDown && backOfHand;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  MASTER CLASSIFIER
+        //  Order matters — more specific checks come first.
+        // ─────────────────────────────────────────────────────────────────
+        function classifyRSL(h) {
+            if (isЛ(h)) return "Л";   // V down + back of hand    (check before Г)
+            if (isГ(h)) return "Г";   // index down + thumb        (check before А)
+            if (isД(h)) return "Д";   // U-shape fully horizontal  (check before К)
+            if (isК(h)) return "К";   // U-shape ~45° tilt
+            if (isВ(h)) return "В";   // all open + frontal        (check before Ж)
+            if (isЖ(h)) return "Ж";   // all open + side + shelf
+            if (isИ(h)) return "И";   // ring + pinky up
+            if (isБ(h)) return "Б";   // index up + middle touch
+            if (isЕ(h)) return "Е";   // O-fist with thumb pinch   (before А — more specific)
+            if (isА(h)) return "А";   // plain fist                (most general, last)
+            return "?";
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  UI
+        // ─────────────────────────────────────────────────────────────────
+        function updateUI() {
+            currentSignDiv.textContent = currentDisplayLetter || "...";
+            signDescDiv.textContent    = LETTER_DESC[currentDisplayLetter] || "Покажите жест чтобы начать";
+            sentenceDiv.textContent    = sentence || "Здесь появится текст...";
+            speakBtn.disabled          = !sentence;
+        }
+
+        function processGesture(letter) {
+            if (letter === "?") return;
+            const currentTime = Date.now() / 1000;
+
+            if (letter !== lastLoggedLetter) {
+                sentence += letter;
+                lastLoggedLetter = letter;
+                lastRepeatTime   = currentTime;
+                updateUI();
+            } else if (currentTime - lastRepeatTime > REPEAT_DELAY) {
+                sentence += letter;
+                lastRepeatTime = currentTime;
+                updateUI();
+            }
+
+            if (sentence.length > 80) sentence = sentence.slice(-80);
+        }
+
+        function speakText(text) {
+            if (!text.trim()) return;
+            if (!('speechSynthesis' in window)) {
+                alert('Озвучивание не поддерживается в этом браузере');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utt    = new SpeechSynthesisUtterance(text);
+            utt.lang     = 'ru-RU';
+            utt.rate     = 0.9;
+            utt.pitch    = 1.0;
+            utt.volume   = 1.0;
+            window.speechSynthesis.speak(utt);
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  MEDIAPIPE HANDS
+        // ─────────────────────────────────────────────────────────────────
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+
+        hands.onResults((results) => {
+            canvasElement.width  = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+
+                // Draw hand skeleton
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
+                drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1 });
+
+                // Analyse and classify
+                const h         = analyzeHand(landmarks);
+                const rawLetter = classifyRSL(h);
+
+                // Temporal smoothing: majority vote over last 5 frames
+                history.push(rawLetter);
+                if (history.length > 5) history.shift();
+
+                const counts = {};
+                history.forEach(l => counts[l] = (counts[l] || 0) + 1);
+                const mostCommon = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+
+                if (counts[mostCommon] >= 3) {
+                    const currentTime = Date.now() / 1000;
+
+                    if (mostCommon !== pendingLetter) {
+                        // New candidate — start hold timer, show it in display
+                        pendingLetter        = mostCommon;
+                        pendingStartTime     = currentTime;
+                        currentDisplayLetter = mostCommon;
+                        updateUI();
+                    } else if (currentTime - pendingStartTime > TIME_THRESHOLD) {
+                        // Held long enough — commit the letter to the sentence
+                        currentDisplayLetter = mostCommon;
+                        processGesture(mostCommon);
+                        // Reset so the same letter requires a fresh hold to repeat
+                        pendingStartTime = currentTime + REPEAT_DELAY;
+                    }
+                }
+            }
+
+            canvasCtx.restore();
+        });
+
+        // ─────────────────────────────────────────────────────────────────
+        //  CAMERA
+        // ─────────────────────────────────────────────────────────────────
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+
+        // ─────────────────────────────────────────────────────────────────
+        //  EVENT LISTENERS
+        // ─────────────────────────────────────────────────────────────────
+        startBtn.addEventListener('click', async () => {
+            try {
+                await camera.start();
+                statusDiv.textContent = "✅ Камера активна — показывайте жесты!";
+                statusDiv.className   = "status active";
+                startBtn.disabled     = true;
+            } catch (error) {
+                statusDiv.textContent = "❌ Нет доступа к камере";
+                statusDiv.className   = "status error";
+            }
+        });
+
+        speakBtn.addEventListener('click', () => {
+            speakText(sentence);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            sentence             = "";
+            lastLoggedLetter     = "";
+            currentDisplayLetter = "";
+            history              = [];
+            updateUI();
+        });
+
+        // Init
+        updateUI();
+    </script>
+</body>
+</html>
