@@ -514,39 +514,25 @@
             const currentTime = Date.now() / 1000;
 
             if (letter === "3") {
-                // Backspace
                 if (currentTime - lastBackspaceTime > BACKSPACE_COOLDOWN) {
                     sentence = sentence.slice(0, -1);
                     lastBackspaceTime = currentTime;
-                    lastLoggedLetter = "";
+                    currentDisplayLetter = ""; // Reset to allow immediate re-backspace
                 }
             } else if (letter === "1") {
-                // Clear
                 sentence = "";
                 lastLoggedLetter = "";
             } else if (letter === "5") {
-                // Space
-                if (lastLoggedLetter !== "5") {
-                    sentence += " ";
-                    lastLoggedLetter = "5";
-                }
+                sentence += " ";
+                lastRepeatTime = currentTime; // Update repeat timer for spaces too
             } else if (letter === ".") {
-                // Speak
-                if (lastLoggedLetter !== ".") {
-                    sentence += ".";
-                    lastLoggedLetter = ".";
-                    speakText(sentence);
-                }
+                sentence += ".";
+                speakText(sentence);
+                lastRepeatTime = currentTime;
             } else if (letter !== "?") {
-                // Normal letter
-                if (letter !== lastLoggedLetter) {
-                    sentence += letter;
-                    lastLoggedLetter = letter;
-                    lastRepeatTime = currentTime;
-                } else if (currentTime - lastRepeatTime > REPEAT_DELAY) {
-                    sentence += letter;
-                    lastRepeatTime = currentTime;
-                }
+                // Append the letter and update the repeat timer
+                sentence += letter;
+                lastRepeatTime = currentTime;
             }
 
             if (sentence.length > 50) sentence = sentence.slice(-50);
@@ -620,7 +606,8 @@
                         pendingLetter = mostCommon;
                         pendingStartTime = currentTime;
                     } else if (currentTime - pendingStartTime > TIME_THRESHOLD) {
-                        if (currentDisplayLetter !== mostCommon) {
+                        const currentTime = Date.now() / 1000;
+                        if (mostCommon !== "?" && (mostCommon !== currentDisplayLetter || (currentTime - lastRepeatTime > REPEAT_DELAY))) {
                             currentDisplayLetter = mostCommon;
                             processGesture(currentDisplayLetter);
                         }
