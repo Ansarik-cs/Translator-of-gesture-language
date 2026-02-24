@@ -1,1 +1,346 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>РЖЯ — Продвинутое распознавание М-Ф, З, Й</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #2d3748;
+        }
 
+        .header { text-align: center; color: white; margin-bottom: 20px; }
+        .header h1 { font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            max-width: 950px;
+            width: 100%;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            aspect-ratio: 4 / 3;
+        }
+
+        #videoElement { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+        .info-panel {
+            background: #2d3748;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .current-sign {
+            font-size: 4rem;
+            font-weight: bold;
+            background: #4a5568;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+            border: 2px solid #667eea;
+        }
+
+        .sentence-display {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.4rem;
+            min-height: 80px;
+            border-left: 5px solid #48bb78;
+        }
+
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            flex: 1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-danger { background: #f56565; color: white; }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; transform: none; }
+
+        .legend { background: #edf2f7; padding: 20px; border-radius: 15px; }
+        .legend h3 { margin-bottom: 15px; color: #2d3748; border-bottom: 2px solid #cbd5e0; padding-bottom: 5px; }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .legend-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-item b {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+        .legend-item span { font-size: 0.8rem; line-height: 1.2; }
+
+        .status { text-align: center; margin-bottom: 15px; font-weight: bold; }
+        .active-status { color: #48bb78; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>✋ РЖЯ Интеллект: М–Ф, З, Й</h1>
+        <p>Система автоматического распознавания жестов</p>
+    </div>
+
+    <div class="main-container">
+        <div id="status" class="status">Ожидание запуска камеры...</div>
+
+        <div class="video-container">
+            <video id="videoElement" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <div class="current-sign" id="currentSign">?</div>
+            <div>
+                <div id="signDescription" style="margin-bottom: 10px; opacity: 0.8; font-style: italic;">Настройте освещение и покажите жест</div>
+                <div class="sentence-display" id="sentenceDisplay">...</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">Включить камеру</button>
+            <button class="btn btn-success" id="speakBtn" disabled>🔊 Озвучить</button>
+            <button class="btn btn-danger" id="clearBtn">Очистить</button>
+        </div>
+
+        <div class="legend">
+            <h3>Словарь жестов (Текущий блок)</h3>
+            <div class="legend-grid" id="legendGrid"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+    <script>
+        // --- КОНФИГУРАЦИЯ ---
+        const CONFIDENCE_THRESHOLD = 0.8; // Уверенность 80%
+        const HOLD_TIME = 600; // Нужно держать жест 0.6 сек
+
+        const LETTER_DESC = {
+            "М": "Три пальца (указ, сред, без) смотрят ВНИЗ и расставлены",
+            "Н": "Указ, сред и мизинец ВВЕРХ. Большой прижат к безымянному",
+            "О": "Кольцо: большой касается указательного",
+            "П": "Указательный и средний ВНИЗ, плотно сжаты",
+            "Р": "Указ, без и мизинец ВВЕРХ. Большой держит средний",
+            "С": "Полусогнутая кисть, напоминает форму буквы С",
+            "Т": "Три пальца ВНИЗ и плотно сжаты вместе",
+            "У": "«Рога»: выставлены только большой и мизинец",
+            "Ф": "Кулак, большой палец поднят вертикально вверх",
+            "З": "Указательный палец смотрит вверх (остальные в кулаке)",
+            "Й": "Форма буквы И (мизинец и без), но кисть наклонена вбок",
+        };
+
+        // Инициализация легенды
+        const grid = document.getElementById('legendGrid');
+        Object.entries(LETTER_DESC).forEach(([l, d]) => {
+            grid.innerHTML += `<div class="legend-item"><b>${l}</b><span>${d}</span></div>`;
+        });
+
+        // --- ГЕОМЕТРИЯ ---
+        function getDist(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
+
+        function calcAngle(a, b, c) {
+            const ba = {x: a.x - b.x, y: a.y - b.y};
+            const bc = {x: c.x - b.x, y: c.y - b.y};
+            const dot = ba.x * bc.x + ba.y * bc.y;
+            const mag = Math.hypot(ba.x, ba.y) * Math.hypot(bc.x, bc.y);
+            return mag === 0 ? 0 : Math.acos(Math.max(-1, Math.min(1, dot / mag))) * 180 / Math.PI;
+        }
+
+        // --- СОСТОЯНИЕ ---
+        let sentence = "";
+        let pendingLetter = "";
+        let pendingStartTime = 0;
+        let lastAddedLetter = "";
+        let frameHistory = [];
+
+        // --- РАСПОЗНАВАНИЕ ---
+        function analyzeHand(lm) {
+            const pSize = getDist(lm[0], lm[9]);
+            const angles = {
+                index: calcAngle(lm[5], lm[6], lm[8]),
+                middle: calcAngle(lm[9], lm[10], lm[12]),
+                ring: calcAngle(lm[13], lm[14], lm[16]),
+                pinky: calcAngle(lm[17], lm[18], lm[20]),
+                thumb: calcAngle(lm[1], lm[2], lm[4])
+            };
+
+            const isOpen = {
+                index: angles.index > 160,
+                middle: angles.middle > 160,
+                ring: angles.ring > 160,
+                pinky: angles.pinky > 160
+            };
+
+            const isDown = (idx) => lm[idx].y > lm[idx-2].y; 
+            const orient = Math.abs(lm[9].x - lm[0].x) > Math.abs(lm[9].y - lm[0].y) ? "SIDE" : "VERT";
+
+            return { lm, pSize, angles, isOpen, isDown, orient };
+        }
+
+        function classify(h) {
+            const { lm, pSize, isOpen, isDown, orient, angles } = h;
+
+            // Расстояния между кончиками (нормализованные)
+            const dIdxMid = getDist(lm[8], lm[12]) / pSize;
+            const dMidRng = getDist(lm[12], lm[16]) / pSize;
+            const dThmIdx = getDist(lm[4], lm[8]) / pSize;
+            const dThmRng = getDist(lm[4], lm[16]) / pSize;
+            const dThmMid = getDist(lm[4], lm[12]) / pSize;
+
+            // ЛОГИКА БУКВ:
+            if (isOpen.pinky && angles.thumb > 140 && !isOpen.index && !isOpen.middle) return "У";
+            if (isOpen.index && !isOpen.middle && !isOpen.ring && orient === "VERT") return "З";
+            if (dThmIdx < 0.3 && isOpen.middle && isOpen.ring && isOpen.pinky) return "О";
+            
+            // М vs Т (Вниз + 3 пальца)
+            if (isDown(8) && isDown(12) && isDown(16)) {
+                return (dIdxMid > 0.4 || dMidRng > 0.4) ? "М" : "Т";
+            }
+
+            // П (Вниз + 2 пальца)
+            if (isDown(8) && isDown(12) && !isOpen.ring) return "П";
+
+            // Н vs Р
+            if (isOpen.index && isOpen.pinky) {
+                if (dThmRng < 0.4 && isOpen.middle) return "Н";
+                if (dThmMid < 0.4 && isOpen.ring) return "Р";
+            }
+
+            // Й (И + наклон)
+            if (isOpen.pinky && isOpen.ring && !isOpen.index && orient === "SIDE") return "Й";
+
+            // Ф (Кулак + большой вверх)
+            if (!isOpen.index && !isOpen.middle && !isOpen.ring && lm[4].y < lm[2].y) return "Ф";
+
+            // С (Форма С)
+            if (angles.index < 140 && angles.index > 80 && orient === "SIDE") return "С";
+
+            return "?";
+        }
+
+        // --- ОСНОВНОЙ ЦИКЛ ---
+        const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+
+        hands.onResults((res) => {
+            const cv = document.getElementById('canvas');
+            const ctx = cv.getContext('2d');
+            cv.width = videoElement.videoWidth;
+            cv.height = videoElement.videoHeight;
+            
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            if (res.multiHandLandmarks && res.multiHandLandmarks.length > 0) {
+                const landmarks = res.multiHandLandmarks[0];
+                drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 3});
+                
+                const analyzed = analyzeHand(landmarks);
+                const letter = classify(analyzed);
+
+                // Фильтр стабильности (Мажоритарное голосование)
+                frameHistory.push(letter);
+                if (frameHistory.length > 8) frameHistory.shift();
+                const counts = {};
+                frameHistory.forEach(x => counts[x] = (counts[x] || 0) + 1);
+                const stableLetter = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+
+                document.getElementById('currentSign').textContent = stableLetter;
+                document.getElementById('signDescription').textContent = LETTER_DESC[stableLetter] || "Определяем жест...";
+
+                // Логика добавления в предложение
+                if (stableLetter !== "?" && stableLetter !== lastAddedLetter) {
+                    if (stableLetter === pendingLetter) {
+                        if (Date.now() - pendingStartTime > HOLD_TIME) {
+                            sentence += stableLetter;
+                            lastAddedLetter = stableLetter;
+                            document.getElementById('sentenceDisplay').textContent = sentence;
+                            document.getElementById('speakBtn').disabled = false;
+                        }
+                    } else {
+                        pendingLetter = stableLetter;
+                        pendingStartTime = Date.now();
+                    }
+                }
+            }
+        });
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => { await hands.send({image: videoElement}); },
+            width: 640, height: 480
+        });
+
+        // Кнопки
+        document.getElementById('startBtn').addEventListener('click', () => {
+            camera.start();
+            document.getElementById('status').textContent = "СИСТЕМА АКТИВНА";
+            document.getElementById('status').classList.add('active-status');
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            sentence = "";
+            lastAddedLetter = "";
+            document.getElementById('sentenceDisplay').textContent = "...";
+            document.getElementById('speakBtn').disabled = true;
+        });
+
+        document.getElementById('speakBtn').addEventListener('click', () => {
+            const msg = new SpeechSynthesisUtterance(sentence);
+            msg.lang = 'ru-RU';
+            window.speechSynthesis.speak(msg);
+        });
+    </script>
+</body>
+</html>
