@@ -1,68 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Language Recognition - Cyrillic Translator</title>
+    <title>Russian Sign Language: Х-Я</title>
     <style>
+        :root {
+            --primary: #2b6cb0;
+            --secondary: #e2e8f0;
+            --text: #1a202c;
+            --bg: #f7fafc;
+            --success: #48bb78;
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            background-color: var(--bg);
+            color: var(--text);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            min-height: 100vh;
         }
 
         .header {
             text-align: center;
-            color: white;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .header h1 {
+            color: var(--primary);
             font-size: 2.5rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            justify-content: center;
         }
 
-        .main-container {
+        .video-section {
             background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 900px;
-            width: 100%;
-        }
-
-        .video-container {
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             position: relative;
-            background: #1a1a1a;
-            border-radius: 15px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        #videoElement {
             width: 100%;
-            height: auto;
-            display: block;
-            transform: scaleX(-1);
+            max-width: 640px;
         }
 
-        #canvas {
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        video, canvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -71,573 +78,270 @@
             transform: scaleX(-1);
         }
 
-        .info-panel {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-
-        .current-sign {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .sign-description {
-            text-align: center;
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 15px;
-        }
-
-        .sentence-display {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1.5rem;
-            min-height: 60px;
-            word-wrap: break-word;
-        }
-
         .controls {
+            margin-top: 15px;
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover { opacity: 0.9; }
+        
+        .btn-start { background-color: var(--primary); color: white; }
+        .btn-clear { background-color: #e53e3e; color: white; }
+
+        .output-section {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .current-letter-box {
+            text-align: center;
             margin-bottom: 20px;
         }
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-success {
-            background: #48bb78;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #38a169;
-            transform: translateY(-2px);
-        }
-
-        .btn-danger {
-            background: #f56565;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #e53e3e;
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .current-letter {
+            font-size: 6rem;
+            font-weight: bold;
+            color: var(--primary);
+            line-height: 1;
+            height: 100px;
         }
 
         .status {
-            text-align: center;
-            padding: 15px;
-            background: #f7fafc;
-            border-radius: 10px;
+            font-size: 1.2rem;
+            color: #718096;
+            margin-top: 10px;
+        }
+
+        .word-display {
+            background: var(--secondary);
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 2rem;
+            min-height: 100px;
+            word-wrap: break-word;
+            flex-grow: 1;
             margin-bottom: 20px;
         }
 
-        .status.active {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .status.error {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-
-        .legend {
-            background: #f7fafc;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-        }
-
-        .legend h3 {
-            margin-bottom: 15px;
-            color: #667eea;
-        }
-
-        .legend-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-        }
-
-        .legend-item {
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-
-        .legend-item.command {
-            border-left-color: #f6ad55;
-        }
-
-        .legend-item strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #2d3748;
-        }
-
-        .legend-item span {
+        .guide {
+            margin-top: auto;
             font-size: 0.9rem;
-            color: #718096;
+            color: #4a5568;
+            border-top: 2px solid var(--secondary);
+            padding-top: 20px;
         }
 
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.8rem;
-            }
-
-            .controls {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-
-            .legend-grid {
-                grid-template-columns: 1fr;
-            }
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
         }
+
+        .guide-item {
+            background: var(--bg);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .guide-item strong { display: block; font-size: 1.2rem; color: var(--primary); }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <h1>✋ Sign Language Translator</h1>
-        <p>Real-time Hand Tracking for Cyrillic/Russian Sign Language</p>
+        <h1>Russian Sign Language (Х-Я)</h1>
+        <p>Кастомный движок на основе ваших описаний</p>
     </div>
 
-    <div class="main-container">
-        <div class="status" id="status">
-            Initializing camera and hand tracking...
-        </div>
-
-        <div class="video-container">
-            <video id="videoElement" autoplay playsinline></video>
-            <canvas id="canvas"></canvas>
-        </div>
-
-        <div class="info-panel">
-            <div class="current-sign" id="currentSign">
-                ...
+    <div class="container">
+        <div class="video-section">
+            <div class="video-wrapper">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="canvasElement"></canvas>
             </div>
-            <div class="sign-description" id="signDescription">
-                Show a sign to begin
-            </div>
-            <div class="sentence-display" id="sentenceDisplay">
-                Your text will appear here...
+            <div class="controls">
+                <button class="btn-start" id="startBtn">Запустить камеру</button>
+                <button class="btn-clear" id="clearBtn">Очистить</button>
             </div>
         </div>
 
-        <div class="controls">
-            <button class="btn btn-primary" id="startBtn">Start Camera</button>
-            <button class="btn btn-success" id="speakBtn" disabled>🔊 Speak Text</button>
-            <button class="btn btn-danger" id="clearBtn">Clear Text</button>
-        </div>
+        <div class="output-section">
+            <div class="current-letter-box">
+                <div class="current-letter" id="currentLetter">-</div>
+                <div class="status" id="statusText">Ожидание...</div>
+            </div>
 
-        <div class="legend">
-            <h3>📖 Supported Cyrillic Letters & Commands</h3>
-            <div class="legend-grid">
-                <!-- Cyrillic Instructions -->
-                <div class="legend-item"><strong>Ш</strong><span>Three fingers open</span></div>
-                <div class="legend-item"><strong>Щ</strong><span>Four fingers, point down</span></div>
-                <div class="legend-item"><strong>Ю</strong><span>Index & Pinky extended</span></div>
-                <div class="legend-item"><strong>Я</strong><span>Index & Middle crossed</span></div>
-                <div class="legend-item"><strong>Ц</strong><span>Index & Middle point down</span></div>
-                <div class="legend-item"><strong>Ъ</strong><span>Index & Middle point sideways</span></div>
-                <div class="legend-item"><strong>Ч</strong><span>Thumb & Index touching</span></div>
-                <div class="legend-item"><strong>Х</strong><span>Hooked index finger</span></div>
-                <div class="legend-item"><strong>Э</strong><span>C-shape (Thumb & Index)</span></div>
-                <div class="legend-item"><strong>Ь</strong><span>Fist, thumb points sideways</span></div>
-                <div class="legend-item"><strong>Ы</strong><span>Index & Middle curled slightly</span></div>
+            <div class="word-display" id="wordDisplay"></div>
 
-                <!-- Existing Commands -->
-                <div class="legend-item command">
-                    <strong>5️⃣ Space</strong>
-                    <span>Five fingers open (B)</span>
-                </div>
-                <div class="legend-item command">
-                    <strong>3️⃣ Backspace</strong>
-                    <span>Three fingers sideways</span>
-                </div>
-                <div class="legend-item command">
-                    <strong>1️⃣ Clear All</strong>
-                    <span>Index finger up</span>
-                </div>
-                <div class="legend-item command">
-                    <strong>. Speak</strong>
-                    <span>Thumb + Index + Middle</span>
+            <div class="guide">
+                <h3>Подсказки по жестам</h3>
+                <div class="guide-grid">
+                    <div class="guide-item"><strong>Ш</strong><span>3 пальца вверх (ладонь к камере)</span></div>
+                    <div class="guide-item"><strong>Щ</strong><span>3 пальца вверх (ладонь в бок)</span></div>
+                    <div class="guide-item"><strong>Ц</strong><span>2 пальца вверх (к камере)</span></div>
+                    <div class="guide-item"><strong>Я</strong><span>Указ. и средний скрещены</span></div>
+                    <div class="guide-item"><strong>Ю</strong><span>Трубочка + мизинец</span></div>
+                    <div class="guide-item"><strong>Х</strong><span>Указ. крючком</span></div>
+                    <div class="guide-item"><strong>Ы</strong><span>Рок (к камере)</span></div>
+                    <div class="guide-item"><strong>Э</strong><span>"С" из большого и указ.</span></div>
+                    <div class="guide-item"><strong>Ч</strong><span>Щепотка (к большому)</span></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MediaPipe Hands -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 
     <script>
-        // Configuration
-        const TIME_THRESHOLD = 0.5;
-        const REPEAT_DELAY = 1.0;
-        const BACKSPACE_COOLDOWN = 0.8;
-
-        // State variables
-        let sentence = "";
-        let currentDisplayLetter = "";
-        let pendingLetter = "";
-        let pendingStartTime = 0;
-        let lastRepeatTime = 0;
-        let lastBackspaceTime = 0;
-        let lastLoggedLetter = "";
-        let history = [];
-        let motionBuffer = [];
-
-        // Elements
         const videoElement = document.getElementById('videoElement');
-        const canvasElement = document.getElementById('canvas');
+        const canvasElement = document.getElementById('canvasElement');
         const canvasCtx = canvasElement.getContext('2d');
-        const statusDiv = document.getElementById('status');
-        const currentSignDiv = document.getElementById('currentSign');
-        const signDescDiv = document.getElementById('signDescription');
-        const sentenceDiv = document.getElementById('sentenceDisplay');
+        const currentLetterUI = document.getElementById('currentLetter');
+        const wordDisplayUI = document.getElementById('wordDisplay');
+        const statusText = document.getElementById('statusText');
         const startBtn = document.getElementById('startBtn');
-        const speakBtn = document.getElementById('speakBtn');
         const clearBtn = document.getElementById('clearBtn');
 
-        // Letter descriptions with Cyrillic Additions
-        const LETTER_DESC = {
-            // Added Cyrillic letters
-            "Х": "Index finger hooked (Kh)",
-            "Ц": "Index & Middle open, pointing down (Ts)",
-            "Ч": "Thumb & Index touching, others open (Ch)",
-            "Ш": "Three fingers open (Sh)",
-            "Щ": "Four fingers open, pointing down (Shch)",
-            "Ъ": "Index & Middle open, pointing sideways (Hard Sign)",
-            "Ы": "Index & Middle bent/curled (Y)",
-            "Ь": "Thumb out, fist, sideways (Soft Sign)",
-            "Э": "Thumb & Index form C-shape (E)",
-            "Ю": "Index & Pinky open (Yu)",
-            "Я": "Index & Middle crossed (Ya)",
+        let accumulatedText = "";
+        let detectionBuffer = [];
+        let lastConfirmedLetter = "";
+        const CONFIDENCE_THRESHOLD = 12; 
+        const COOLDOWN_FRAMES = 25;
+        let cooldownCounter = 0;
 
-            // Fallback Latin letters
-            "A": "Thumb Side", "B": "Flat palm", "C": "C-Shape",
-            "D": "Index Up + Thumb Touch", "E": "Curled Claws", "F": "OK Sign",
-            "G": "Index Side", "H": "Index+Mid Side", "I": "Pinky Up",
-            "J": "Pinky DOWN", "K": "Thumb Poking Up", "L": "L-Shape",
-            "M": "Thumb under Ring", "N": "Thumb under Middle", "O": "Circle",
-            "P": "Index/Mid Down", "Q": "Index/Thumb Down", "R": "Fingers Crossed",
-            "S": "Fist", "T": "Thumb TUCKED", "U": "Index+Mid Upright",
-            "V": "Peace Sign", "W": "3 Fingers Up", "X": "Hooked Index",
-            "Y": "Hang Loose", "Z": "ZigZag",
-
-            // Commands
-            "1": "COMMAND: CLEAR", "3": "COMMAND: BACKSPACE",
-            "5": "COMMAND: SPACE", ".": "COMMAND: SPEAK (Period)",
-            "?": "..."
-        };
-
-        // Angle calculation
-        function calcAngle(a, b, c) {
-            const ba = [a.x - b.x, a.y - b.y];
-            const bc = [c.x - b.x, c.y - b.y];
-            const dotProduct = ba[0] * bc[0] + ba[1] * bc[1];
-            const magnitudeBA = Math.sqrt(ba[0] * ba[0] + ba[1] * ba[1]);
-            const magnitudeBC = Math.sqrt(bc[0] * bc[0] + bc[1] * bc[1]);
-            if (magnitudeBA * magnitudeBC === 0) return 0;
-            const cosine = Math.max(-1, Math.min(1, dotProduct / (magnitudeBA * magnitudeBC)));
-            return Math.acos(cosine) * (180 / Math.PI);
+        function getDistance(lm1, lm2) {
+            return Math.sqrt(Math.pow(lm1.x - lm2.x, 2) + Math.pow(lm1.y - lm2.y, 2));
         }
 
-        // Analyze hand landmarks
-        function analyzeHand(landmarks) {
-            const lm = landmarks;
-            const info = {};
+        function classifyRussianLetter(landmarks) {
+            const wrist = landmarks[0];
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const indexPip = landmarks[6];
+            const indexMcp = landmarks[5];
+            const midTip = landmarks[12];
+            const midPip = landmarks[10];
+            const midMcp = landmarks[9];
+            const ringTip = landmarks[16];
+            const ringMcp = landmarks[13];
+            const pinkyTip = landmarks[20];
+            const pinkyMcp = landmarks[17];
 
-            // Finger angles and states
-            const fingerJoints = {
-                'index': [5, 6, 8],
-                'middle': [9, 10, 12],
-                'ring': [13, 14, 16],
-                'pinky': [17, 18, 20]
-            };
+            // Проверка: вытянут ли палец вверх
+            const isUp = (tip, mcp) => tip.y < mcp.y - 0.05;
+            const isFolded = (tip, mcp) => tip.y > mcp.y;
 
-            const state = {};
-            const angles = {};
+            const idxUp = isUp(indexTip, indexMcp);
+            const midUp = isUp(midTip, midMcp);
+            const ringUp = isUp(ringTip, ringMcp);
+            const pinkyUp = isUp(pinkyTip, pinkyMcp);
 
-            for (const [name, [a, b, c]] of Object.entries(fingerJoints)) {
-                const angle = calcAngle(lm[a], lm[b], lm[c]);
-                angles[name] = angle;
-                state[name] = angle > 160 ? 'OPEN' : 'CLOSED';
-            }
+            // Определение направления ладони (Z-координаты или векторное произведение)
+            // Упрощенно: если MCP мизинца правее MCP указательного (с учетом зеркала)
+            const palmWidth = Math.abs(indexMcp.x - pinkyMcp.x);
+            const isPalmFacingCamera = palmWidth > 0.08;
+            const isPalmFacingSide = palmWidth < 0.05;
 
-            angles.thumb = calcAngle(lm[1], lm[2], lm[4]);
+            // Расстояния для Ч и Э
+            const distThumbIndex = getDistance(thumbTip, indexTip);
+            const distThumbMid = getDistance(thumbTip, midTip);
 
-            // Orientation
-            const palmSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y);
-            const vx = lm[9].x - lm[0].x;
-            const vy = lm[9].y - lm[0].y;
+            // --- ЛОГИКА БУКВ ---
 
-            if (Math.abs(vx) > Math.abs(vy)) info.orient = "SIDE";
-            else if (vy < 0) info.orient = "UP";
-            else info.orient = "DOWN";
+            // Ш: Указательный, средний, четвертый вверх. Ладонь к камере.
+            if (idxUp && midUp && ringUp && !pinkyUp && isPalmFacingCamera) return "Ш";
 
-            // Index direction
-            const idx_dx = lm[8].x - lm[5].x;
-            const idx_dy = lm[8].y - lm[5].y;
-            info.index_dir = Math.abs(idx_dx) > Math.abs(idx_dy) ? "HORIZONTAL" : "VERTICAL";
+            // Щ: Как Ш, но ладонь повернута в бок (внутрь)
+            if (idxUp && midUp && ringUp && !pinkyUp && isPalmFacingSide) return "Щ";
 
-            // Normalized positions
-            const mult = lm[17].x > lm[5].x ? 1 : -1;
-            info.norm_thumb_x = lm[4].x * mult;
-            info.norm_index_x = lm[5].x * mult;
-            info.norm_mid_x = lm[9].x * mult;
-            info.norm_ring_x = lm[13].x * mult;
+            // Ц: Указательный и средний вверх. Ладонь к камере.
+            if (idxUp && midUp && !ringUp && !pinkyUp && isPalmFacingCamera) return "Ц";
 
-            info.y_thumb = lm[4].y;
-            info.y_index_mcp = lm[5].y;
-            info.y_index_pip = lm[6].y;
-            info.y_pinky_tip = lm[20].y;
-            info.y_pinky_mcp = lm[17].y;
+            // Я: Пальцы скрещены (средний сверху), ладонь в бок.
+            // Скрещивание определяем по инверсии X-координат кончиков относительно MCP
+            if (isPalmFacingSide && indexTip.x < midTip.x && idxUp && midUp) return "Я";
 
-            // Distances
-            info.dist_thumb_middle = Math.hypot(lm[4].x - lm[12].x, lm[4].y - lm[12].y) / palmSize;
-            info.dist_thumb_index = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / palmSize;
-            info.dist_index_middle = Math.hypot(lm[8].x - lm[12].x, lm[8].y - lm[12].y) / palmSize;
+            // Ю: Трубочка (указ. и большой близко), мизинец в бок.
+            if (distThumbIndex < 0.05 && pinkyUp && isPalmFacingSide) return "Ю";
 
-            // Fingers crossed check
-            const delta_tips = lm[8].x - lm[12].x;
-            const delta_mcp = lm[5].x - lm[9].x;
-            info.fingers_crossed = (delta_tips * delta_mcp) < 0;
+            // Х: Указательный крючком. Ладонь в бок.
+            // Крючок: кончик ниже PIP, но выше MCP
+            const isHook = indexTip.y > indexPip.y && indexTip.y < indexMcp.y;
+            if (isHook && isPalmFacingSide && !midUp && !ringUp && !pinkyUp) return "Х";
 
-            return { info, state, angles };
+            // Ы: Рок-н-ролл (Указательный и мизинец вверх), ладонь к камере.
+            if (idxUp && pinkyUp && !midUp && !ringUp && isPalmFacingCamera) return "Ы";
+
+            // Э: Большой и указательный в форме С.
+            if (isPalmFacingSide && distThumbIndex > 0.08 && distThumbIndex < 0.15 && !midUp && !ringUp && !pinkyUp) return "Э";
+
+            // Ч: Щепотка (Указ. и средний прижаты к большому).
+            if (isPalmFacingSide && distThumbIndex < 0.04 && distThumbMid < 0.04 && !ringUp && !pinkyUp) return "Ч";
+
+            // Пробел: Ладонь полностью открыта
+            if (idxUp && midUp && ringUp && pinkyUp && getDistance(thumbTip, indexTip) > 0.1) return " ";
+
+            return null;
         }
 
-        // Classify letter from hand data
-        function classifyLetter(info, state, angles, motion) {
-            const orient = info.orient;
-            const index_dir = info.index_dir;
-            const { index: I, middle: M, ring: R, pinky: P } = state;
+        function handleDetection(detectedLetter) {
+            if (cooldownCounter > 0) cooldownCounter--;
 
-            // --- CYRILLIC AND COMMANDS OVERRIDE ---
-
-            // Four/Five fingers open
-            if (I === 'OPEN' && M === 'OPEN' && R === 'OPEN' && P === 'OPEN') {
-                if (orient === "DOWN") return "Щ"; // Cyrillic Щ: Four fingers down
-                if (angles.thumb < 140) return "B"; 
-                return "5"; // Command: Space
-            }
-
-            // Three fingers open
-            if (I === 'OPEN' && M === 'OPEN' && R === 'OPEN' && P === 'CLOSED') {
-                if (index_dir === "HORIZONTAL") return "3"; // Command: Backspace
-                return "Ш"; // Cyrillic Ш: Three fingers open
-            }
-
-            // Two fingers open (Index and Middle)
-            if (I === 'OPEN' && M === 'OPEN' && R === 'CLOSED' && P === 'CLOSED') {
-                if (info.fingers_crossed) return "Я"; // Cyrillic Я: Fingers crossed
-                if (orient === "DOWN") return "Ц"; // Cyrillic Ц: Index & Middle pointing down
-                if (orient === "SIDE") return "Ъ"; // Cyrillic Ъ: Index & Middle sideways
-                if (angles.thumb > 150) return "."; // Command: Speak
-
-                // Fallbacks
-                if (index_dir === "HORIZONTAL") return "H";
-                if (info.dist_index_middle < 0.16) return "U";
-                if (info.y_thumb < info.y_index_mcp) return "K";
-                return "V";
-            }
-
-            // Two fingers open (Index and Pinky)
-            if (I === 'OPEN' && M === 'CLOSED' && R === 'CLOSED' && P === 'OPEN') {
-                return "Ю"; // Cyrillic Ю
-            }
-
-            // One finger open (Index only)
-            if (I === 'OPEN' && M === 'CLOSED' && R === 'CLOSED') {
-                if (index_dir === "HORIZONTAL") return "G";
-                if (info.dist_thumb_middle < 0.2) return "D";
-                if (angles.thumb > 150 && info.dist_thumb_index > 0.25) {
-                    if (orient !== "DOWN") return "L";
-                }
-                return "1"; // Command: Clear All
-            }
-
-            // --- SPECIAL SHAPES / CYRILLIC FIST-BASED ---
-
-            // Cyrillic Ч (F-shape: Thumb and Index touching, others open)
-            if (info.dist_thumb_index < 0.2 && M === 'OPEN' && R === 'OPEN' && P === 'OPEN') {
-                return "Ч"; 
-            }
-
-            // Cyrillic Х (Hooked index finger)
-            if (60 < angles.index && angles.index < 140 && M === 'CLOSED' && R === 'CLOSED' && P === 'CLOSED') {
-                return "Х";
-            }
-
-            // Cyrillic Э (C-shape with index and thumb only)
-            if (70 < angles.index && angles.index < 150 && 70 < angles.thumb && angles.thumb < 150 && M === 'CLOSED' && R === 'CLOSED' && P === 'CLOSED') {
-                return "Э";
-            }
-
-            // Cyrillic Ь (Thumbs up, completely sideways)
-            if (I === 'CLOSED' && M === 'CLOSED' && R === 'CLOSED' && P === 'CLOSED' && angles.thumb > 140 && orient === "SIDE") {
-                return "Ь";
-            }
-
-            // Cyrillic Ы (Index and middle bent down slightly, others closed)
-            if (I === 'CLOSED' && M === 'CLOSED' && R === 'CLOSED' && P === 'CLOSED') {
-                 if (80 < angles.index && angles.index < 160 && 80 < angles.middle && angles.middle < 160) {
-                     return "Ы";
-                 }
-            }
-
-
-            // --- REMAINING ORIGINAL FALLBACKS ---
-
-            // Dynamic gestures (Z)
-            if (motion.length > 5) {
-                if (I === 'OPEN' && M === 'CLOSED') {
-                    const xs = motion.map(p => p[0]);
-                    if ((Math.max(...xs) - Math.min(...xs)) > 0.08) return "Z";
-                }
-            }
-
-            // Downward signs
-            if (orient === "DOWN") {
-                if (info.y_pinky_tip > info.y_pinky_mcp && I === 'CLOSED' && M === 'CLOSED' && R === 'CLOSED') return "J";
-                if (angles.index > 110 && angles.middle > 110) return "P";
-                if (I === 'OPEN' && M === 'CLOSED') return "Q";
-            }
-
-            // Pinky gestures
-            if (I === 'CLOSED' && M === 'CLOSED' && R === 'CLOSED' && P === 'OPEN') {
-                if (info.y_pinky_tip > info.y_pinky_mcp) return "J";
-                if (angles.thumb > 140) return "Y";
-                return "I";
-            }
-
-            // Fist group
-            if (I === 'CLOSED' && M === 'CLOSED' && R === 'CLOSED' && P === 'CLOSED') {
-                const { norm_thumb_x: tx, norm_index_x: ix, norm_mid_x: mx, norm_ring_x: rx } = info;
-                if (angles.thumb > 140 && tx < ix - 0.01) return "A";
-                if (tx > rx) return "M";
-                if (mx < tx && tx < rx) return "N";
-                if (ix < tx && tx < mx) return "S";
-                if (info.y_thumb < info.y_index_pip) return "T";
-                if (angles.thumb < 140) return "E"; // Kept english E as fallback
-            }
-
-            return "?";
-        }
-
-        // Update UI
-        function updateUI() {
-            currentSignDiv.textContent = currentDisplayLetter || "...";
-            signDescDiv.textContent = LETTER_DESC[currentDisplayLetter] || "Show a sign to begin";
-            sentenceDiv.textContent = sentence || "Your text will appear here...";
-            speakBtn.disabled = !sentence;
-        }
-
-        // Process gesture
-        function processGesture(letter) {
-            const currentTime = Date.now() / 1000;
-
-            if (letter === "3") {
-                // Backspace
-                if (currentTime - lastBackspaceTime > BACKSPACE_COOLDOWN) {
-                    sentence = sentence.slice(0, -1);
-                    lastBackspaceTime = currentTime;
-                    lastLoggedLetter = "";
-                }
-            } else if (letter === "1") {
-                // Clear
-                sentence = "";
-                lastLoggedLetter = "";
-            } else if (letter === "5") {
-                // Space
-                if (lastLoggedLetter !== "5") {
-                    sentence += " ";
-                    lastLoggedLetter = "5";
-                }
-            } else if (letter === ".") {
-                // Speak
-                if (lastLoggedLetter !== ".") {
-                    sentence += ".";
-                    lastLoggedLetter = ".";
-                    speakText(sentence);
-                }
-            } else if (letter !== "?") {
-                // Normal letter
-                if (letter !== lastLoggedLetter) {
-                    sentence += letter;
-                    lastLoggedLetter = letter;
-                    lastRepeatTime = currentTime;
-                } else if (currentTime - lastRepeatTime > REPEAT_DELAY) {
-                    sentence += letter;
-                    lastRepeatTime = currentTime;
-                }
-            }
-
-            if (sentence.length > 50) sentence = sentence.slice(-50);
-            updateUI();
-        }
-
-        // Text-to-speech configured for Russian
-        function speakText(text) {
-            if (!text.trim()) return;
-            
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                
-                // Set language to Russian to pronounce Cyrillic correctly
-                utterance.lang = 'ru-RU'; 
-                utterance.rate = 0.9;
-                utterance.pitch = 1.0;
-                utterance.volume = 1.0;
-                
-                window.speechSynthesis.speak(utterance);
+            if (detectedLetter) {
+                currentLetterUI.textContent = detectedLetter === " " ? "␣" : detectedLetter;
+                detectionBuffer.push(detectedLetter);
             } else {
-                alert('Text-to-speech not supported in your browser');
+                currentLetterUI.textContent = "-";
+                detectionBuffer.push("-");
+            }
+
+            if (detectionBuffer.length > 20) detectionBuffer.shift();
+
+            const counts = {};
+            let maxCount = 0;
+            let mostFrequent = null;
+
+            for (let letter of detectionBuffer) {
+                counts[letter] = (counts[letter] || 0) + 1;
+                if (counts[letter] > maxCount) {
+                    maxCount = counts[letter];
+                    mostFrequent = letter;
+                }
+            }
+
+            if (maxCount >= CONFIDENCE_THRESHOLD && mostFrequent !== "-") {
+                if (mostFrequent !== lastConfirmedLetter || cooldownCounter === 0) {
+                    accumulatedText += mostFrequent;
+                    wordDisplayUI.textContent = accumulatedText;
+                    lastConfirmedLetter = mostFrequent;
+                    cooldownCounter = COOLDOWN_FRAMES;
+                    detectionBuffer = [];
+                }
             }
         }
 
-        // MediaPipe Hands setup
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -652,87 +356,44 @@
         hands.onResults((results) => {
             canvasElement.width = videoElement.videoWidth;
             canvasElement.height = videoElement.videoHeight;
-            
             canvasCtx.save();
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 const landmarks = results.multiHandLandmarks[0];
-                
-                // Draw hand landmarks
-                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
-                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 3});
+                drawLandmarks(canvasCtx, landmarks, {color: '#2b6cb0', lineWidth: 2, radius: 4});
 
-                // Track motion
-                const tip = landmarks[8];
-                motionBuffer.push([tip.x, tip.y]);
-                if (motionBuffer.length > 20) motionBuffer.shift();
-
-                // Analyze and classify
-                const { info, state, angles } = analyzeHand(landmarks);
-                const rawLetter = classifyLetter(info, state, angles, motionBuffer);
-
-                // Stabilize with history
-                history.push(rawLetter);
-                if (history.length > 5) history.shift();
-
-                const counts = {};
-                history.forEach(l => counts[l] = (counts[l] || 0) + 1);
-                const mostCommon = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-
-                if (counts[mostCommon] >= 3) {
-                    const currentTime = Date.now() / 1000;
-                    
-                    if (mostCommon !== pendingLetter) {
-                        pendingLetter = mostCommon;
-                        pendingStartTime = currentTime;
-                    } else if (currentTime - pendingStartTime > TIME_THRESHOLD) {
-                        if (currentDisplayLetter !== mostCommon) {
-                            currentDisplayLetter = mostCommon;
-                            processGesture(currentDisplayLetter);
-                        }
-                    }
-                }
+                const letter = classifyRussianLetter(landmarks);
+                handleDetection(letter);
+                statusText.textContent = "Жест обнаружен";
+            } else {
+                currentLetterUI.textContent = "-";
+                statusText.textContent = "Рука не видна";
+                if (cooldownCounter > 0) cooldownCounter--;
             }
-
             canvasCtx.restore();
         });
 
-        // Camera setup
         const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({image: videoElement});
-            },
+            onFrame: async () => { await hands.send({image: videoElement}); },
             width: 640,
             height: 480
         });
 
-        // Event listeners
         startBtn.addEventListener('click', async () => {
-            try {
-                await camera.start();
-                statusDiv.textContent = "✅ Camera active - Show hand signs!";
-                statusDiv.className = "status active";
-                startBtn.disabled = true;
-            } catch (error) {
-                statusDiv.textContent = "❌ Camera access denied or not available";
-                statusDiv.className = "status error";
-            }
-        });
-
-        speakBtn.addEventListener('click', () => {
-            speakText(sentence);
+            await camera.start();
+            startBtn.disabled = true;
+            statusText.textContent = "Покажите жест!";
         });
 
         clearBtn.addEventListener('click', () => {
-            sentence = "";
-            lastLoggedLetter = "";
-            updateUI();
+            accumulatedText = "";
+            wordDisplayUI.textContent = "";
+            lastConfirmedLetter = "";
+            detectionBuffer = [];
         });
-
-        // Initialize
-        updateUI();
     </script>
 </body>
 </html>
