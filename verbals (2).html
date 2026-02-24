@@ -477,9 +477,17 @@ document.getElementById('alphaImgEN').src = 'data:image/jpeg;base64,/9j/4AAQSkZJ
 // ═══════════════════════════════════════════════════════════
 //  CONFIGURATION
 // ═══════════════════════════════════════════════════════════
-const TIME_THRESHOLD = 0.9;
+const TIME_THRESHOLD = 1.2;  // базовая задержка увеличена
 const REPEAT_DELAY   = 2.0;
 const BACKSPACE_COOLDOWN = 1.3;
+
+// Буквы с повышенной задержкой — слишком лёгкие или конфликтные жесты
+const LETTER_HOLD_OVERRIDE = {
+    "А":  2.5,   // кулак — слишком легко попасть случайно
+    " ":  2.8,   // пробел — не должен срабатывать при переходе
+    "В":  1.6,   // все пальцы открыты — конфликтует с Ж и пробелом
+    "Ж":  1.6,   // все пальцы открыты боком — конфликтует с В
+};
 
 // ═══════════════════════════════════════════════════════════
 //  LANGUAGE STATE
@@ -490,13 +498,13 @@ let currentLang = 'RU'; // 'RU' | 'EN'
 //  LETTER DESCRIPTIONS
 // ═══════════════════════════════════════════════════════════
 const LETTER_DESC_RU = {
-    "А": "Кулак, большой палец прижат сбоку",
+    "А": "Кулак, большой палец прижат сбоку (держать 2.2 сек)",
     "Б": "Указательный вверх, средний касается его фаланги",
-    "В": "Открытая ладонь к камере, все пальцы вытянуты",
+    "В": "Открытая ладонь СТРОГО к камере, большой вытянут, держать 1.6 сек",
     "Г": "Указательный вниз, большой в сторону",
     "Д": "Указательный и средний горизонтально в сторону",
     "Е": "О-форма, боковая сторона",
-    "Ж": "Кисть вертикально, все пальцы горизонтально («полка»)",
+    "Ж": "«Полка»: рука БОКОМ к камере, пальцы горизонтально, большой прижат, держать 1.6 сек",
     "З": "Только указательный вверх, остальные в кулаке",
     "И": "Безымянный и мизинец вверх, ладонь к камере",
     "Й": "Как И, но кисть повёрнута боком",
@@ -520,7 +528,7 @@ const LETTER_DESC_RU = {
     "Э": "С-форма из большого и указательного, ладонь боком",
     "Ю": "Трубочка (указ.+большой близко) + мизинец, ладонь боком",
     "Я": "Указательный и средний скрещены, ладонь боком",
-    " ": "Пробел — полностью открытая ладонь, все пальцы широко",
+    " ": "Пробел — все пальцы широко, большой МАКСИМАЛЬНО отведён в сторону (держать 2.5 сек)",
 };
 
 const LETTER_DESC_EN = {
@@ -765,11 +773,26 @@ function analyzeHandRU(lm) {
 
 function isА({state,thumbStrictlyUp}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&!thumbStrictlyUp; }
 function isБ({state,midPipNearIndexPip,orient}){ return state.index==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&midPipNearIndexPip&&orient!=='DOWN'; }
-function isВ({state,angles,zDepth}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&angles.thumb>130&&zDepth>0.02; }
+function isВ({state,angles,isPalmFacingCamera,dThumbIndex,zDepth}){
+    // В: все пальцы открыты, ладонь К камере
+    // Используем isPalmFacingCamera (ширина ладони по X) — надёжнее чем zDepth
+    // Большой вытянут (> 120) но НЕ максимально растопырен (< 1.1) — это пробел
+    return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'
+        && angles.thumb > 120
+        && isPalmFacingCamera          // ладонь широкая = смотрит в камеру
+        && dThumbIndex < 1.0;          // большой не максимально растопырен (пробел > 1.0)
+}
 function isГ({state,angles,orient}){ return state.index==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&angles.thumb>130&&orient==='DOWN'; }
 function isД({state,idxAngleFromVertical,orient}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&idxAngleFromVertical>=65&&orient==='SIDE'; }
 function isЕ({state,dThumbIndex,dThumbMiddle,lm,palmSize,thumbStrictlyUp}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&dThumbIndex<0.38&&dThumbMiddle<0.45&&lm[4].y<lm[5].y+palmSize*0.3&&!thumbStrictlyUp; }
-function isЖ({state,orient,tipsSpreadY,palmSize,zDepth}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&tipsSpreadY<palmSize*0.5&&zDepth<0.05&&orient==='UP'; }
+function isЖ({state,orient,tipsSpreadY,palmSize,zDepth,angles,isPalmFacingSide,isPalmFacingCamera}){
+    // Ж: «полка» — рука БОКОМ, пальцы горизонтально, большой прижат
+    // Явно исключаем фронтальную ладонь (isPalmFacingCamera) — это В
+    const allOpen = state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN';
+    const isHorizontalShelf = tipsSpreadY < palmSize * 0.45;
+    const thumbClosed = angles.thumb < 110;
+    return allOpen && isHorizontalShelf && !isPalmFacingCamera && thumbClosed;
+}
 function isЗ({state,orient,angles}){ return state.index==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&orient==='UP'&&angles.thumb<120; }
 function isИ({state,angles,orient,zDepth}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&angles.thumb<140&&orient==='UP'&&zDepth>0.0; }
 function isЙ({state,angles,orient,isPalmFacingSide}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&angles.thumb<140&&(orient==='SIDE'||isPalmFacingSide); }
@@ -793,7 +816,13 @@ function isЫ({state,isPalmFacingCamera}){ return state.index==='OPEN'&&state.pi
 function isЭ({dThumbIndex,state,isPalmFacingSide}){ return isPalmFacingSide&&dThumbIndex>0.45&&dThumbIndex<1.2&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'; }
 function isЮ({dThumbIndex,state,isPalmFacingSide}){ return isPalmFacingSide&&dThumbIndex<0.45&&state.pinky==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'; }
 function isЯ({state,lm,isPalmFacingSide}){ return isPalmFacingSide&&state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&lm[8].x<lm[12].x; }
-function isSpaceRU({state,dThumbIndex}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&dThumbIndex>0.8; }
+function isSpaceRU({state,dThumbIndex,isPalmFacingCamera}){
+    // Пробел: все пальцы открыты + большой МАКСИМАЛЬНО растопырен (> 1.0)
+    // Отличие от В: dThumbIndex > 1.0 (при В < 1.0)
+    return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'
+        && dThumbIndex > 1.0
+        && isPalmFacingCamera;
+}
 
 function classifyRU(h) {
     if (isSpaceRU(h)) return " ";
@@ -951,18 +980,13 @@ function processGesture(letter) {
             }
             updateUI(); return;
         }
-        if (letter === '1') { sentence=''; lastLoggedLetter=''; updateUI(); return; }
+        if (letter === '1') { sentence=''; updateUI(); return; }
         if (letter === '⎵') { letter = ' '; }
     }
 
-    if (letter !== lastLoggedLetter) {
-        sentence += letter;
-        lastLoggedLetter = letter;
-        lastRepeatTime = now;
-    } else if (now - lastRepeatTime > REPEAT_DELAY) {
-        sentence += letter;
-        lastRepeatTime = now;
-    }
+    // Просто пишем букву — управление повторами происходит в основном цикле
+    // через pendingLetter + history сброс после каждой записи
+    sentence += letter;
     if (sentence.length > 100) sentence = sentence.slice(-100);
     updateUI();
 }
@@ -1027,6 +1051,8 @@ hands.onResults((results) => {
 
         if (counts[mostCommon] >= 4) {
             const now = Date.now()/1000;
+            const holdNeeded = LETTER_HOLD_OVERRIDE[mostCommon] ?? TIME_THRESHOLD;
+
             if (mostCommon !== pendingLetter) {
                 pendingLetter        = mostCommon;
                 pendingStartTime     = now;
@@ -1035,11 +1061,16 @@ hands.onResults((results) => {
                 updateUI();
             } else {
                 const held = now - pendingStartTime;
-                holdBar.style.width = `${Math.min(100,(held/TIME_THRESHOLD)*100)}%`;
-                if (held > TIME_THRESHOLD) {
+                holdBar.style.width = `${Math.min(100,(held/holdNeeded)*100)}%`;
+                if (held > holdNeeded) {
                     currentDisplayLetter = mostCommon;
                     processGesture(mostCommon);
-                    pendingStartTime = now + REPEAT_DELAY;
+                    // Сбрасываем pendingLetter в '' — следующая запись этой же буквы
+                    // потребует полностью нового hold'а с нуля.
+                    // Очищаем историю чтобы детектор не триггернул мгновенно снова.
+                    pendingLetter       = '';
+                    pendingStartTime    = 0;
+                    history             = [];
                     holdBar.style.width = '0%';
                 }
             }
@@ -1095,3 +1126,4 @@ updateUI();
 </script>
 </body>
 </html>
+
