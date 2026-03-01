@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verbals</title>
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0a0a0f;
+            --paper: #f0ede8;
+            --cream: #faf8f4;
+            --accent: #c8421a;
+            --accent2: #1a5fc8;
+            --accent3: #18a058;
+            --muted: #6b6560;
+            --border: rgba(10,10,15,0.12);
+            --card: #ffffff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            max-width: 1100px;
+            margin: 0 auto 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            border-bottom: 3px solid var(--ink);
+            padding-bottom: 20px;
+        }
+        .header-left h1 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: clamp(1.6rem, 4vw, 2.8rem);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+        .header-left h1 span { color: var(--accent); }
+        .header-left p {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 6px;
+            font-weight: 300;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        /* ── LANGUAGE SWITCHER ── */
+        .lang-switcher {
+            display: flex;
+            background: var(--ink);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+            box-shadow: 3px 3px 0 rgba(10,10,15,0.3);
+        }
+        .lang-btn {
+            padding: 9px 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.03em;
+            color: rgba(255,255,255,0.45);
+            background: transparent;
+        }
+        .lang-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px rgba(200,66,26,0.4);
+        }
+        .lang-btn:hover:not(.active) { color: rgba(255,255,255,0.8); }
+
+        /* ── STATUS BADGE ── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 2px solid var(--ink);
+            background: var(--cream);
+            transition: all 0.3s;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .status-badge .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .status-badge.active { background: #dcf5e8; border-color: var(--accent3); color: #0d5c2e; }
+        .status-badge.active .dot { background: var(--accent3); animation: pulse 1.5s infinite; }
+        .status-badge.error { background: #fde8e3; border-color: var(--accent); color: #7a1a06; }
+        .status-badge.error .dot { background: var(--accent); }
+        @keyframes pulse {
+            0%,100% { opacity:1; transform:scale(1); }
+            50% { opacity:0.5; transform:scale(1.4); }
+        }
+
+        /* ── MAIN LAYOUT ── */
+        .main-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+        @media (max-width: 860px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        /* ── VIDEO ── */
+        .video-wrapper {
+            position: relative;
+            background: var(--ink);
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            border: 3px solid var(--ink);
+            box-shadow: 6px 6px 0 var(--ink);
+        }
+        #videoElement {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: block;
+        }
+        #canvas {
+            position: absolute; top:0; left:0;
+            width:100%; height:100%;
+            transform: scaleX(-1);
+        }
+        .letter-overlay {
+            position: absolute;
+            top: 12px; right: 12px;
+            background: rgba(10,10,15,0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 8px 16px;
+            color: white;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 2.4rem;
+            font-weight: 900;
+            min-width: 68px;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.15);
+            transition: background 0.15s;
+        }
+        .letter-overlay.detected { background: rgba(200,66,26,0.9); border-color: rgba(255,255,255,0.4); }
+        .letter-overlay.speak-gesture { background: rgba(26,95,200,0.92); border-color: rgba(255,255,255,0.4); }
+
+        /* language flag pill on video */
+        .lang-pill {
+            position: absolute;
+            top: 12px; left: 12px;
+            background: rgba(10,10,15,0.75);
+            backdrop-filter: blur(6px);
+            border-radius: 100px;
+            padding: 5px 12px;
+            color: white;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            border: 1.5px solid rgba(255,255,255,0.2);
+        }
+
+        .hold-bar-wrap {
+            position: absolute;
+            bottom: 12px; left: 12px; right: 12px;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .hold-bar {
+            height: 100%;
+            background: var(--accent3);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.08s linear;
+        }
+        .hold-bar.speak { background: var(--accent2); }
+
+        .no-hand-msg {
+            position: absolute;
+            bottom: 50%; left: 50%;
+            transform: translate(-50%, 50%);
+            background: rgba(10,10,15,0.75);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .no-hand-msg.visible { opacity: 1; }
+
+        /* ── CONTROLS ── */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .btn {
+            flex: 1;
+            padding: 13px 16px;
+            border: 2px solid var(--ink);
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: 3px 3px 0 var(--ink);
+        }
+        .btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+        .btn:hover { opacity: 0.88; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: 3px 3px 0 var(--ink); }
+        .btn-start { background: var(--accent); color: white; }
+        .btn-speak { background: var(--accent2); color: white; }
+        .btn-clear { background: var(--cream); color: var(--ink); }
+
+        /* ── SIDE PANEL ── */
+        .side-panel { display: flex; flex-direction: column; gap: 20px; }
+
+        .detection-card {
+            background: var(--card);
+            border: 3px solid var(--ink);
+            border-radius: 16px;
+            box-shadow: 5px 5px 0 var(--ink);
+            padding: 24px;
+        }
+        .detect-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+        .big-letter {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 5.5rem;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--accent);
+            letter-spacing: -0.03em;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+        }
+        .big-letter.speak-color { color: var(--accent2); }
+        .letter-desc {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 10px;
+            font-style: italic;
+            min-height: 36px;
+            line-height: 1.4;
+        }
+        .output-card {
+            background: var(--card);
+            border: 3px solid var(--ink);
+            border-radius: 16px;
+            box-shadow: 5px 5px 0 var(--ink);
+            padding: 20px;
+            flex-grow: 1;
+        }
+        .sentence-box {
+            min-height: 80px;
+            font-size: 1.5rem;
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 700;
+            color: var(--ink);
+            word-break: break-all;
+            letter-spacing: 0.04em;
+        }
+        .char-count {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        /* ── ALPHABET REFERENCE ── */
+        .alphabet-section {
+            grid-column: 1 / -1;
+            background: var(--card);
+            border: 3px solid var(--ink);
+            border-radius: 16px;
+            box-shadow: 5px 5px 0 var(--ink);
+            padding: 24px;
+        }
+        .alphabet-title {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .alphabet-title .bar { width:32px; height:3px; background:var(--accent2); display:inline-block; border-radius:2px; }
+        .alphabet-title .toggle-hint { margin-left:auto; font-size:0.75rem; color:var(--muted); font-family:'Inter',sans-serif; font-weight:400; }
+        .alphabet-img-wrap { border-radius:10px; overflow:hidden; border:2px solid var(--border); }
+        .alphabet-img-wrap img { width:100%; display:block; }
+        .alphabet-collapsible { display:block; }
+        .alphabet-collapsible.collapsed { display:none; }
+
+        /* ── LEGEND ── */
+        .legend-section {
+            grid-column: 1 / -1;
+            background: var(--card);
+            border: 3px solid var(--ink);
+            border-radius: 16px;
+            box-shadow: 5px 5px 0 var(--ink);
+            padding: 24px;
+        }
+        .legend-title {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-title .bar { width:32px; height:3px; background:var(--accent); display:inline-block; border-radius:2px; }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            background: var(--paper);
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            transition: all 0.15s;
+        }
+        .legend-item:hover { border-color: var(--accent); background: #fde8e3; }
+        .legend-item.active-letter { background:var(--accent); border-color:var(--accent); color:white; }
+        .legend-item.active-letter .li-key { background:white; color:var(--accent); }
+        .legend-item.active-letter .li-desc { color:rgba(255,255,255,0.85); }
+        .legend-item.cmd-item { border-left: 3px solid var(--accent2); }
+        .legend-item.speak-item { border-left: 3px solid var(--accent2); background: #e8f0fe; }
+        .legend-item.speak-item .li-key { background: var(--accent2); }
+        .legend-item.active-speak { background: var(--accent2) !important; border-color: var(--accent2) !important; color: white !important; }
+        .legend-item.active-speak .li-key { background: white !important; color: var(--accent2) !important; }
+        .legend-item.active-speak .li-desc { color: rgba(255,255,255,0.85) !important; }
+        .li-key {
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 900;
+            font-size: 1rem;
+            width: 32px; height: 32px;
+            background: var(--ink);
+            color: var(--paper);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .li-desc { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-left">
+        <h1>Verb<span>als</span></h1>
+        <p id="headerSubtitle">Распознавание жестового языка</p>
+    </div>
+    <div class="header-right">
+        <div class="lang-switcher">
+            <button class="lang-btn active" id="btnRU" onclick="switchLang('RU')">РЖЯ</button>
+            <button class="lang-btn" id="btnEN" onclick="switchLang('EN')">ASL</button>
+        </div>
+        <div class="status-badge" id="statusBadge">
+            <div class="dot"></div>
+            <span id="statusText">Ожидание запуска</span>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-container">
+
+    <!-- VIDEO -->
+    <div class="video-section">
+        <div class="video-wrapper">
+            <video id="videoElement" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <div class="letter-overlay" id="letterOverlay">–</div>
+            <div class="lang-pill" id="langPill">РЖЯ</div>
+            <div class="no-hand-msg" id="noHandMsg">✋ Покажите руку</div>
+            <div class="hold-bar-wrap"><div class="hold-bar" id="holdBar"></div></div>
+        </div>
+        <div class="controls">
+            <button class="btn btn-start" id="startBtn">▶ Запустить камеру</button>
+            <button class="btn btn-speak" id="speakBtn" disabled>🔊 Озвучить</button>
+            <button class="btn btn-clear" id="clearBtn">✕ Очистить</button>
+        </div>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side-panel">
+        <div class="detection-card">
+            <div class="detect-label" id="labelCurrentGesture">Текущий жест</div>
+            <div class="big-letter" id="bigLetter">–</div>
+            <div class="letter-desc" id="letterDesc">Покажите жест камере</div>
+        </div>
+        <div class="output-card">
+            <div class="detect-label" id="labelText">Набранный текст</div>
+            <div class="sentence-box" id="sentenceBox">...</div>
+            <div class="char-count" id="charCount">0 символов</div>
+        </div>
+    </div>
+
+    <!-- ALPHABET IMAGE -->
+    <div class="alphabet-section">
+        <div class="alphabet-title" id="alphaToggle">
+            <span class="bar"></span>
+            <span id="alphaTitle">Справочник жестов РЖЯ</span>
+            <span class="toggle-hint" id="toggleHint">▲ Свернуть</span>
+        </div>
+        <div class="alphabet-collapsible" id="alphaContent">
+            <div class="alphabet-img-wrap">
+                <img id="alphaImgRU" src="" alt="Алфавит РЖЯ" style="display:block;" />
+                <img id="alphaImgEN" src="" alt="ASL Alphabet" style="display:none;" />
+            </div>
+        </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend-section">
+        <div class="legend-title"><span class="bar"></span> <span id="legendTitle">Словарь жестов</span></div>
+        <div class="legend-grid" id="legendGrid"></div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<script>
+const TIME_THRESHOLD = 1.2;
+const REPEAT_DELAY   = 2.0;
+const BACKSPACE_COOLDOWN = 1.3;
+
+const LETTER_HOLD_OVERRIDE = {
+    "А":  2.5,
+    " ":  2.8,
+    "В":  1.6,
+    "Ж":  1.6,
+    "4":  1.8,   // жест озвучки — небольшая задержка чтобы не срабатывал случайно
+};
+
+// ═══════════════════════════════════════════════════════════
+//  LANGUAGE STATE
+// ═══════════════════════════════════════════════════════════
+let currentLang = 'RU';
+
+// ═══════════════════════════════════════════════════════════
+//  LETTER DESCRIPTIONS
+// ═══════════════════════════════════════════════════════════
+const LETTER_DESC_RU = {
+    "4": "🔊 ОЗВУЧИТЬ — 4 пальца вверх растопырены, большой прижат к ладони",
+    "А": "Кулак, большой палец прижат сбоку (держать 2.2 сек)",
+    "Б": "Указательный вверх, средний касается его фаланги",
+    "В": "Открытая ладонь СТРОГО к камере, большой вытянут, держать 1.6 сек",
+    "Г": "Указательный вниз, большой в сторону",
+    "Д": "Указательный и средний горизонтально в сторону",
+    "Е": "О-форма, боковая сторона",
+    "Ж": "«Полка»: рука БОКОМ к камере, пальцы горизонтально, большой прижат, держать 1.6 сек",
+    "З": "Только указательный вверх, остальные в кулаке",
+    "И": "Безымянный и мизинец вверх, ладонь к камере",
+    "Й": "Как И, но кисть повёрнута боком",
+    "К": "Указательный и средний под углом ~45°",
+    "Л": "L-форма (пистолет): указательный вверх + большой в сторону",
+    "М": "Указательный, средний и безымянный вниз, расставлены",
+    "Н": "Указательный, средний и мизинец вверх; большой держит безымянный",
+    "О": "Кольцо: большой касается указательного",
+    "П": "Два пальца строго вниз, плотно вместе",
+    "Р": "Указательный, безымянный и мизинец вверх; большой держит средний",
+    "С": "Полусогнутая кисть — форма буквы С, ладонь боком",
+    "Т": "Три пальца вниз, плотно сжаты",
+    "У": "«Рога»: большой и мизинец в стороны",
+    "Ф": "Кулак, большой палец строго вверх (thumbs up)",
+    "Х": "Указательный крючком, ладонь боком",
+    "Ц": "Указательный и средний вверх, ладонь к камере",
+    "Ч": "Щепотка: указательный и средний к большому, ладонь боком",
+    "Ш": "Три пальца (указ.+средн.+безым.) вверх, ладонь к камере",
+    "Щ": "Три пальца вверх, ладонь повёрнута боком",
+    "Ы": "Рок-жест: указательный и мизинец вверх, ладонь к камере",
+    "Э": "С-форма из большого и указательного, ладонь боком",
+    "Ю": "Трубочка (указ.+большой близко) + мизинец, ладонь боком",
+    "Я": "Указательный и средний скрещены, ладонь боком",
+    " ": "Пробел — все пальцы широко, большой МАКСИМАЛЬНО отведён в сторону (держать 2.5 сек)",
+};
+
+const LETTER_DESC_EN = {
+    "4": "🔊 SPEAK — 4 fingers up spread, thumb tucked in",
+    "A": "Fist, thumb to the side",
+    "B": "Flat palm facing forward, thumb tucked",
+    "C": "Curved hand in C-shape",
+    "D": "Index up, other fingers curl to thumb",
+    "E": "Curled fingers, thumb tucked under",
+    "F": "Index+thumb form ring, other 3 fingers up",
+    "G": "Index pointing sideways, thumb parallel",
+    "H": "Index+middle pointing sideways together",
+    "I": "Pinky up, rest closed",
+    "J": "Pinky traces J path downward",
+    "K": "Index+middle up, thumb between them",
+    "L": "L-shape: index up + thumb out",
+    "M": "Three fingers over thumb",
+    "N": "Two fingers over thumb",
+    "O": "Fingers+thumb form O circle",
+    "P": "Index+middle pointing down, thumb out",
+    "Q": "Index+thumb pointing down",
+    "R": "Index+middle crossed",
+    "S": "Fist, thumb over fingers",
+    "T": "Thumb tucked under index",
+    "U": "Index+middle up, held together",
+    "V": "Index+middle up, spread apart (peace)",
+    "W": "Three fingers up spread",
+    "X": "Index hooked/bent",
+    "Y": "Thumb+pinky out (hang loose)",
+    "⌫": "BACKSPACE — three fingers sideways",
+    "⎵": "SPACE — open palm (B shape)",
+};
+
+// ═══════════════════════════════════════════════════════════
+//  UI TEXT TRANSLATIONS
+// ═══════════════════════════════════════════════════════════
+const UI_TEXT = {
+    RU: {
+        subtitle: "Распознавание русского жестового языка",
+        waitStatus: "Ожидание запуска",
+        activeStatus: "Камера активна",
+        errorStatus: "Нет доступа к камере",
+        startBtn: "▶ Запустить камеру",
+        speakBtn: "🔊 Озвучить",
+        clearBtn: "✕ Очистить",
+        labelGesture: "Текущий жест",
+        labelText: "Набранный текст",
+        placeholder: "...",
+        charLabel: (n) => `${n} символов`,
+        noHand: "✋ Покажите руку",
+        alphaTitle: "Справочник жестов РЖЯ",
+        legendTitle: "Словарь жестов",
+        gesturePrompt: "Покажите жест камере",
+        speakLang: "ru-RU",
+        langPill: "РЖЯ",
+    },
+    EN: {
+        subtitle: "American Sign Language Recognition",
+        waitStatus: "Waiting to start",
+        activeStatus: "Camera active",
+        errorStatus: "Camera access denied",
+        startBtn: "▶ Start Camera",
+        speakBtn: "🔊 Speak",
+        clearBtn: "✕ Clear",
+        labelGesture: "Current sign",
+        labelText: "Typed text",
+        placeholder: "...",
+        charLabel: (n) => `${n} characters`,
+        noHand: "✋ Show your hand",
+        alphaTitle: "ASL Alphabet Reference",
+        legendTitle: "Sign Dictionary",
+        gesturePrompt: "Show a sign to begin",
+        speakLang: "en-US",
+        langPill: "ASL",
+    }
+};
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let sentence             = "";
+let currentDisplayLetter = "";
+let pendingLetter        = "";
+let pendingStartTime     = 0;
+let lastRepeatTime       = 0;
+let lastBackspaceTime    = 0;
+let lastLoggedLetter     = "";
+let history              = [];
+let motionBuffer         = [];
+
+// ═══════════════════════════════════════════════════════════
+//  DOM ELEMENTS
+// ═══════════════════════════════════════════════════════════
+const videoElement  = document.getElementById('videoElement');
+const canvasElement = document.getElementById('canvas');
+const canvasCtx     = canvasElement.getContext('2d');
+const startBtn      = document.getElementById('startBtn');
+const speakBtn      = document.getElementById('speakBtn');
+const clearBtn      = document.getElementById('clearBtn');
+const bigLetterEl   = document.getElementById('bigLetter');
+const letterDescEl  = document.getElementById('letterDesc');
+const sentenceBoxEl = document.getElementById('sentenceBox');
+const charCountEl   = document.getElementById('charCount');
+const statusBadge   = document.getElementById('statusBadge');
+const statusTextEl  = document.getElementById('statusText');
+const letterOverlay = document.getElementById('letterOverlay');
+const noHandMsg     = document.getElementById('noHandMsg');
+const holdBar       = document.getElementById('holdBar');
+const legendGrid    = document.getElementById('legendGrid');
+
+// ═══════════════════════════════════════════════════════════
+//  LEGEND BUILD
+// ═══════════════════════════════════════════════════════════
+function buildLegend(lang) {
+    const descs = lang === 'RU' ? LETTER_DESC_RU : LETTER_DESC_EN;
+    legendGrid.innerHTML = '';
+    Object.entries(descs).forEach(([letter, desc]) => {
+        const isCmd  = ['⌫','⎵','1','3','5','.'].includes(letter);
+        const isSpeak = letter === '4';
+        const item = document.createElement('div');
+        item.className = `legend-item${isCmd ? ' cmd-item' : ''}${isSpeak ? ' speak-item' : ''}`;
+        item.id = `leg-${letter}`;
+        const display = letter === ' ' ? '␣' : letter;
+        item.innerHTML = `<div class="li-key">${display}</div><div class="li-desc">${desc}</div>`;
+        legendGrid.appendChild(item);
+    });
+}
+
+function highlightLegend(letter) {
+    document.querySelectorAll('.legend-item').forEach(el => {
+        el.classList.remove('active-letter');
+        el.classList.remove('active-speak');
+    });
+    const el = document.getElementById(`leg-${letter}`);
+    if (el) {
+        if (letter === '4') {
+            el.classList.add('active-speak');
+        } else {
+            el.classList.add('active-letter');
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LANGUAGE SWITCH
+// ═══════════════════════════════════════════════════════════
+function switchLang(lang) {
+    if (lang === currentLang) return;
+    currentLang = lang;
+
+    sentence = ""; currentDisplayLetter = ""; pendingLetter = "";
+    history = []; motionBuffer = []; lastLoggedLetter = "";
+    holdBar.style.width = '0%';
+
+    const t = UI_TEXT[lang];
+
+    document.getElementById('btnRU').classList.toggle('active', lang === 'RU');
+    document.getElementById('btnEN').classList.toggle('active', lang === 'EN');
+    document.getElementById('headerSubtitle').textContent = t.subtitle;
+    document.getElementById('langPill').textContent = t.langPill;
+    document.getElementById('noHandMsg').textContent = t.noHand;
+    document.getElementById('alphaTitle').textContent = t.alphaTitle;
+    document.getElementById('legendTitle').textContent = t.legendTitle;
+    document.getElementById('labelCurrentGesture').textContent = t.labelGesture;
+    document.getElementById('labelText').textContent = t.labelText;
+    startBtn.textContent  = t.startBtn;
+    speakBtn.textContent  = t.speakBtn;
+    clearBtn.textContent  = t.clearBtn;
+
+    if (!startBtn.disabled) {
+        statusTextEl.textContent = t.waitStatus;
+    }
+
+    document.getElementById('alphaImgRU').style.display = lang === 'RU' ? 'block' : 'none';
+    document.getElementById('alphaImgEN').style.display = lang === 'EN' ? 'block' : 'none';
+
+    buildLegend(lang);
+    updateUI();
+}
+
+// Collapsible alphabet
+document.getElementById('alphaToggle').addEventListener('click', () => {
+    const content = document.getElementById('alphaContent');
+    const hint = document.getElementById('toggleHint');
+    if (content.classList.contains('collapsed')) {
+        content.classList.remove('collapsed');
+        hint.textContent = '▲ Свернуть';
+    } else {
+        content.classList.add('collapsed');
+        hint.textContent = '▼ Развернуть';
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  GEOMETRY HELPERS
+// ═══════════════════════════════════════════════════════════
+function calcAngle(a, b, c) {
+    const ba = [a.x - b.x, a.y - b.y];
+    const bc = [c.x - b.x, c.y - b.y];
+    const dot = ba[0]*bc[0] + ba[1]*bc[1];
+    const mag = Math.hypot(...ba) * Math.hypot(...bc);
+    if (mag === 0) return 0;
+    return Math.acos(Math.max(-1, Math.min(1, dot/mag))) * 180 / Math.PI;
+}
+function getDist(p1, p2) { return Math.hypot(p1.x-p2.x, p1.y-p2.y); }
+
+// ═══════════════════════════════════════════════════════════
+//  RU HAND ANALYSIS & CLASSIFIERS
+// ═══════════════════════════════════════════════════════════
+function analyzeHandRU(lm) {
+    const palmSize = Math.hypot(lm[0].x-lm[9].x, lm[0].y-lm[9].y) || 0.001;
+    const fingerDefs = { index:[5,6,8], middle:[9,10,12], ring:[13,14,16], pinky:[17,18,20] };
+    const angles = {}; const state = {};
+    for (const [name,[a,b,c]] of Object.entries(fingerDefs)) {
+        angles[name] = calcAngle(lm[a],lm[b],lm[c]);
+        state[name]  = angles[name] > 155 ? 'OPEN' : 'CLOSED';
+    }
+    angles.thumb = calcAngle(lm[1],lm[2],lm[4]);
+    const vx = lm[9].x-lm[0].x, vy = lm[9].y-lm[0].y;
+    let orient;
+    if (Math.abs(vx)>Math.abs(vy)) orient="SIDE"; else if(vy<0) orient="UP"; else orient="DOWN";
+    const dThumbIndex  = getDist(lm[4],lm[8])/palmSize;
+    const dThumbMiddle = getDist(lm[4],lm[12])/palmSize;
+    const dThumbRing   = getDist(lm[4],lm[16])/palmSize;
+    const dIndexMiddle = getDist(lm[8],lm[12])/palmSize;
+    const dMiddleRing  = getDist(lm[12],lm[16])/palmSize;
+    const zDepth = (lm[0].z||0)-(lm[12].z||0);
+    const tipsY  = [lm[8].y,lm[12].y,lm[16].y,lm[20].y];
+    const tipsSpreadY = Math.max(...tipsY)-Math.min(...tipsY);
+    const idxAngleFromVertical = Math.atan2(Math.abs(lm[8].x-lm[5].x),Math.abs(lm[8].y-lm[5].y))*180/Math.PI;
+    const midPipNearIndexPip = Math.abs(lm[10].y-lm[6].y)<palmSize*0.35 && angles.middle>80 && angles.middle<155;
+    const palmWidth = Math.abs(lm[5].x-lm[17].x);
+    const isPalmFacingCamera = palmWidth>0.08;
+    const isPalmFacingSide   = palmWidth<0.06;
+    const thumbStrictlyUp    = (lm[2].y-lm[4].y)>palmSize*0.5;
+    return { lm, state, angles, orient, palmSize,
+             dThumbIndex, dThumbMiddle, dThumbRing, dIndexMiddle, dMiddleRing,
+             zDepth, tipsSpreadY, idxAngleFromVertical,
+             midPipNearIndexPip, isPalmFacingCamera, isPalmFacingSide,
+             thumbStrictlyUp, palmWidth };
+}
+
+// ── RU gesture classifiers ──
+function is4({state, angles, isPalmFacingCamera}) {
+    // Цифра 4: указательный, средний, безымянный и мизинец открыты и растопырены,
+    // большой ПРИЖАТ (angle < 100) — это ключевое отличие от В (большой вытянут)
+    // и от пробела (большой максимально растопырен).
+    return state.index  === 'OPEN'
+        && state.middle === 'OPEN'
+        && state.ring   === 'OPEN'
+        && state.pinky  === 'OPEN'
+        && angles.thumb < 100
+        && isPalmFacingCamera;
+}
+function isА({state,thumbStrictlyUp}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&!thumbStrictlyUp; }
+function isБ({state,midPipNearIndexPip,orient}){ return state.index==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&midPipNearIndexPip&&orient!=='DOWN'; }
+function isВ({state,angles,isPalmFacingCamera,dThumbIndex}){
+    return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'
+        && angles.thumb > 120
+        && isPalmFacingCamera
+        && dThumbIndex < 1.0;
+}
+function isГ({state,angles,orient}){ return state.index==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&angles.thumb>130&&orient==='DOWN'; }
+function isД({state,idxAngleFromVertical,orient}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&idxAngleFromVertical>=65&&orient==='SIDE'; }
+function isЕ({state,dThumbIndex,dThumbMiddle,lm,palmSize,thumbStrictlyUp}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&dThumbIndex<0.38&&dThumbMiddle<0.45&&lm[4].y<lm[5].y+palmSize*0.3&&!thumbStrictlyUp; }
+function isЖ({state,tipsSpreadY,palmSize,angles,isPalmFacingCamera}){
+    const allOpen = state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN';
+    const isHorizontalShelf = tipsSpreadY < palmSize * 0.45;
+    const thumbClosed = angles.thumb < 110;
+    return allOpen && isHorizontalShelf && !isPalmFacingCamera && thumbClosed;
+}
+function isЗ({state,orient,angles}){ return state.index==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&orient==='UP'&&angles.thumb<120; }
+function isИ({state,angles,orient,zDepth}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&angles.thumb<140&&orient==='UP'&&zDepth>0.0; }
+function isЙ({state,angles,orient,isPalmFacingSide}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&angles.thumb<140&&(orient==='SIDE'||isPalmFacingSide); }
+function isК({state,idxAngleFromVertical}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&idxAngleFromVertical>=28&&idxAngleFromVertical<65; }
+function isЛ({state,angles,idxAngleFromVertical,lm}){ return state.index==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&angles.thumb>130&&idxAngleFromVertical<35&&lm[8].y<lm[5].y; }
+function isМ({state,lm,dIndexMiddle,dMiddleRing}){ return lm[8].y>lm[5].y&&lm[12].y>lm[9].y&&lm[16].y>lm[13].y&&(dIndexMiddle>0.35||dMiddleRing>0.35)&&state.pinky==='CLOSED'; }
+function isН({state,dThumbRing,orient}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='OPEN'&&dThumbRing<0.5&&orient==='UP'; }
+function isО({state,dThumbIndex}){ return dThumbIndex<0.3&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'; }
+function isП({state,lm,dIndexMiddle,idxAngleFromVertical}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&lm[8].y>lm[5].y+0.02&&lm[12].y>lm[9].y+0.02&&dIndexMiddle<0.40&&idxAngleFromVertical<45; }
+function isР({state,dThumbMiddle,orient}){ return state.index==='OPEN'&&state.middle==='CLOSED'&&state.ring==='OPEN'&&state.pinky==='OPEN'&&dThumbMiddle<0.45&&orient==='UP'; }
+function isС({state,angles,orient,isPalmFacingSide}){ return angles.index>80&&angles.index<145&&(orient==='SIDE'||isPalmFacingSide)&&state.ring==='CLOSED'&&state.pinky==='CLOSED'; }
+function isТ({state,lm,dIndexMiddle,dMiddleRing}){ return lm[8].y>lm[5].y&&lm[12].y>lm[9].y&&lm[16].y>lm[13].y&&dIndexMiddle<0.35&&dMiddleRing<0.35&&state.pinky==='CLOSED'; }
+function isУ({state,angles}){ return state.pinky==='OPEN'&&angles.thumb>140&&state.index==='CLOSED'&&state.middle==='CLOSED'; }
+function isФ({state,thumbStrictlyUp}){ return state.index==='CLOSED'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&thumbStrictlyUp; }
+function isХ({state,lm,isPalmFacingSide}){ return lm[8].y>lm[6].y&&lm[8].y<lm[5].y&&isPalmFacingSide&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'; }
+function isЦ({state,isPalmFacingCamera,idxAngleFromVertical}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&isPalmFacingCamera&&idxAngleFromVertical<30; }
+function isЧ({dThumbIndex,dThumbMiddle,state,isPalmFacingSide}){ return isPalmFacingSide&&dThumbIndex<0.40&&dThumbMiddle<0.40&&state.ring==='CLOSED'&&state.pinky==='CLOSED'; }
+function isШ({state,isPalmFacingCamera,idxAngleFromVertical}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='CLOSED'&&isPalmFacingCamera&&idxAngleFromVertical<30; }
+function isЩ({state,isPalmFacingSide,idxAngleFromVertical}){ return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='CLOSED'&&isPalmFacingSide&&idxAngleFromVertical<40; }
+function isЫ({state,isPalmFacingCamera}){ return state.index==='OPEN'&&state.pinky==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&isPalmFacingCamera; }
+function isЭ({dThumbIndex,state,isPalmFacingSide}){ return isPalmFacingSide&&dThumbIndex>0.45&&dThumbIndex<1.2&&state.middle==='CLOSED'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'; }
+function isЮ({dThumbIndex,state,isPalmFacingSide}){ return isPalmFacingSide&&dThumbIndex<0.45&&state.pinky==='OPEN'&&state.middle==='CLOSED'&&state.ring==='CLOSED'; }
+function isЯ({state,lm,isPalmFacingSide}){ return isPalmFacingSide&&state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='CLOSED'&&state.pinky==='CLOSED'&&lm[8].x<lm[12].x; }
+function isSpaceRU({state,dThumbIndex,isPalmFacingCamera}){
+    return state.index==='OPEN'&&state.middle==='OPEN'&&state.ring==='OPEN'&&state.pinky==='OPEN'
+        && dThumbIndex > 1.0
+        && isPalmFacingCamera;
+}
+
+function classifyRU(h) {
+    // Жест 4 (озвучка) — проверяем первым, до В и пробела, чтобы не было конфликта
+    if (is4(h))      return "4";
+    if (isSpaceRU(h)) return " ";
+    if (isВ(h))  return "В";
+    if (isЖ(h))  return "Ж";
+    if (isЙ(h))  return "Й";
+    if (isИ(h))  return "И";
+    if (isФ(h))  return "Ф";
+    if (isЕ(h))  return "Е";
+    if (isА(h))  return "А";
+    if (isЛ(h))  return "Л";
+    if (isГ(h))  return "Г";
+    if (isЗ(h))  return "З";
+    if (isБ(h))  return "Б";
+    if (isД(h))  return "Д";
+    if (isП(h))  return "П";
+    if (isК(h))  return "К";
+    if (isТ(h))  return "Т";
+    if (isМ(h))  return "М";
+    if (isШ(h))  return "Ш";
+    if (isЩ(h))  return "Щ";
+    if (isЦ(h))  return "Ц";
+    if (isЯ(h))  return "Я";
+    if (isЮ(h))  return "Ю";
+    if (isХ(h))  return "Х";
+    if (isЫ(h))  return "Ы";
+    if (isУ(h))  return "У";
+    if (isН(h))  return "Н";
+    if (isР(h))  return "Р";
+    if (isО(h))  return "О";
+    if (isЧ(h))  return "Ч";
+    if (isЭ(h))  return "Э";
+    if (isС(h))  return "С";
+    return "?";
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EN (ASL) HAND ANALYSIS & CLASSIFIER
+// ═══════════════════════════════════════════════════════════
+function analyzeHandEN(landmarks) {
+    const lm = landmarks;
+    const info = {};
+    const fingerJoints = { index:[5,6,8], middle:[9,10,12], ring:[13,14,16], pinky:[17,18,20] };
+    const state = {}; const angles = {};
+    for (const [name,[a,b,c]] of Object.entries(fingerJoints)) {
+        angles[name] = calcAngle(lm[a],lm[b],lm[c]);
+        state[name]  = angles[name] > 160 ? 'OPEN' : 'CLOSED';
+    }
+    angles.thumb = calcAngle(lm[1],lm[2],lm[4]);
+    const palmSize = Math.hypot(lm[0].x-lm[9].x, lm[0].y-lm[9].y);
+    const vx=lm[9].x-lm[0].x, vy=lm[9].y-lm[0].y;
+    if(Math.abs(vx)>Math.abs(vy)) info.orient="SIDE"; else if(vy<0) info.orient="UP"; else info.orient="DOWN";
+    const idx_dx=lm[8].x-lm[5].x, idx_dy=lm[8].y-lm[5].y;
+    info.index_dir = Math.abs(idx_dx)>Math.abs(idx_dy) ? "HORIZONTAL" : "VERTICAL";
+    const mult = lm[17].x>lm[5].x ? 1 : -1;
+    info.norm_thumb_x = lm[4].x*mult; info.norm_index_x = lm[5].x*mult;
+    info.norm_mid_x   = lm[9].x*mult; info.norm_ring_x   = lm[13].x*mult;
+    info.y_thumb      = lm[4].y; info.y_index_mcp = lm[5].y;
+    info.y_index_pip  = lm[6].y; info.y_pinky_tip = lm[20].y;
+    info.y_pinky_mcp  = lm[17].y;
+    info.dist_thumb_middle = getDist(lm[4],lm[12])/palmSize;
+    info.dist_thumb_index  = getDist(lm[4],lm[8])/palmSize;
+    info.dist_index_middle = getDist(lm[8],lm[12])/palmSize;
+    const delta_tips=lm[8].x-lm[12].x, delta_mcp=lm[5].x-lm[9].x;
+    info.fingers_crossed = (delta_tips*delta_mcp)<0;
+    return { info, state, angles };
+}
+
+function classifyEN(info, state, angles) {
+    const orient=info.orient, index_dir=info.index_dir;
+    const {index:I,middle:M,ring:R,pinky:P}=state;
+
+    // Жест 4 (озвучка) — все 4 пальца открыты, большой прижат
+    if(I==='OPEN'&&M==='OPEN'&&R==='OPEN'&&P==='OPEN'&&angles.thumb<100) return "4";
+
+    if(orient==="DOWN"){
+        if(info.y_pinky_tip>info.y_pinky_mcp&&I==='CLOSED'&&M==='CLOSED'&&R==='CLOSED') return "J";
+        if(angles.index>110&&angles.middle>110) return "P";
+        if(I==='OPEN'&&M==='CLOSED') return "Q";
+    }
+    if(70<angles.index&&angles.index<150&&70<angles.middle&&angles.middle<150){
+        if(info.dist_thumb_index>0.15) return "C";
+        return "O";
+    }
+    if(60<angles.index&&angles.index<140&&M==='CLOSED'&&R==='CLOSED') return "X";
+    if(I==='OPEN'&&M==='OPEN'&&R==='OPEN'&&P==='OPEN'){
+        if(angles.thumb<140) return "B";
+        return "⎵";
+    }
+    if(I==='OPEN'&&M==='OPEN'&&R==='OPEN'&&P==='CLOSED'){
+        if(index_dir==="HORIZONTAL") return "⌫";
+        return "W";
+    }
+    if(M==='OPEN'&&R==='OPEN'&&P==='OPEN') return "F";
+    if(info.dist_thumb_index<0.2&&M==='OPEN') return "F";
+    if(I==='OPEN'&&M==='OPEN'&&R==='CLOSED'&&P==='CLOSED'){
+        if(angles.thumb>150) return ".";
+        if(info.fingers_crossed) return "R";
+        if(index_dir==="HORIZONTAL") return "H";
+        if(info.dist_index_middle<0.16) return "U";
+        if(info.y_thumb<info.y_index_mcp) return "K";
+        return "V";
+    }
+    if(I==='OPEN'&&M==='CLOSED'&&R==='CLOSED'){
+        if(index_dir==="HORIZONTAL") return "G";
+        if(info.dist_thumb_middle<0.2) return "D";
+        if(angles.thumb>150&&info.dist_thumb_index>0.25&&orient!=="DOWN") return "L";
+        return "1";
+    }
+    if(I==='CLOSED'&&M==='CLOSED'&&R==='CLOSED'&&P==='OPEN'){
+        if(info.y_pinky_tip>info.y_pinky_mcp) return "J";
+        if(angles.thumb>140) return "Y";
+        return "I";
+    }
+    if(I==='CLOSED'&&M==='CLOSED'&&R==='CLOSED'&&P==='CLOSED'){
+        const {norm_thumb_x:tx,norm_index_x:ix,norm_mid_x:mx,norm_ring_x:rx}=info;
+        if(angles.thumb>140&&tx<ix-0.01) return "A";
+        if(tx>rx) return "M";
+        if(mx<tx&&tx<rx) return "N";
+        if(ix<tx&&tx<mx) return "S";
+        if(info.y_thumb<info.y_index_pip) return "T";
+        if(angles.thumb<140) return "E";
+    }
+    return "?";
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SPEAK HELPER
+// ═══════════════════════════════════════════════════════════
+function triggerSpeak() {
+    if (!sentence.trim()) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(sentence);
+    utt.lang = UI_TEXT[currentLang].speakLang;
+    utt.rate = 0.9;
+    window.speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UNIFIED PROCESS GESTURE
+// ═══════════════════════════════════════════════════════════
+function processGesture(letter) {
+    if (letter === '?') return;
+    const now = Date.now()/1000;
+
+    // Жест 4 — озвучить текст (не пишет символ в предложение)
+    if (letter === '4') {
+        triggerSpeak();
+        return;
+    }
+
+    // EN special commands
+    if (currentLang === 'EN') {
+        if (letter === '⌫') {
+            if (now - lastBackspaceTime > BACKSPACE_COOLDOWN) {
+                sentence = sentence.slice(0,-1);
+                lastBackspaceTime = now;
+                currentDisplayLetter = '';
+            }
+            updateUI(); return;
+        }
+        if (letter === '1') { sentence=''; updateUI(); return; }
+        if (letter === '⎵') { letter = ' '; }
+    }
+
+    sentence += letter;
+    if (sentence.length > 100) sentence = sentence.slice(-100);
+    updateUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI UPDATE
+// ═══════════════════════════════════════════════════════════
+function updateUI() {
+    const t = UI_TEXT[currentLang];
+    const letter = currentDisplayLetter;
+    const descs  = currentLang === 'RU' ? LETTER_DESC_RU : LETTER_DESC_EN;
+    const isSpeak = letter === '4';
+
+    bigLetterEl.textContent   = letter || '–';
+    bigLetterEl.className     = `big-letter${isSpeak ? ' speak-color' : ''}`;
+    letterDescEl.textContent  = descs[letter] || t.gesturePrompt;
+    sentenceBoxEl.textContent = sentence || t.placeholder;
+    charCountEl.textContent   = t.charLabel(sentence.length);
+    speakBtn.disabled         = !sentence;
+
+    const display = (letter && letter !== '?') ? (letter === ' ' ? '␣' : letter) : '–';
+    letterOverlay.textContent = display;
+    letterOverlay.className   = `letter-overlay${
+        isSpeak ? ' speak-gesture' :
+        (letter && letter !== '?') ? ' detected' : ''
+    }`;
+
+    // Полоска загрузки меняет цвет для жеста озвучки
+    if (isSpeak) {
+        holdBar.classList.add('speak');
+    } else {
+        holdBar.classList.remove('speak');
+    }
+
+    if (letter && letter !== '?') highlightLegend(letter);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MEDIAPIPE LOOP
+// ═══════════════════════════════════════════════════════════
+const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+hands.setOptions({ maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.7, minTrackingConfidence:0.7 });
+
+hands.onResults((results) => {
+    canvasElement.width  = videoElement.videoWidth;
+    canvasElement.height = videoElement.videoHeight;
+    canvasCtx.save();
+    canvasCtx.clearRect(0,0,canvasElement.width,canvasElement.height);
+    canvasCtx.drawImage(results.image,0,0,canvasElement.width,canvasElement.height);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color:'#00ff88',lineWidth:2});
+        drawLandmarks(canvasCtx, landmarks, {color:'#ff3366',lineWidth:1,radius:3});
+        noHandMsg.classList.remove('visible');
+
+        let rawLetter;
+        if (currentLang === 'RU') {
+            const h = analyzeHandRU(landmarks);
+            rawLetter = classifyRU(h);
+        } else {
+            const tip = landmarks[8];
+            motionBuffer.push([tip.x, tip.y]);
+            if (motionBuffer.length > 20) motionBuffer.shift();
+            const { info, state, angles } = analyzeHandEN(landmarks);
+            rawLetter = classifyEN(info, state, angles);
+        }
+
+        // Temporal smoothing: majority vote over 7 frames
+        history.push(rawLetter);
+        if (history.length > 7) history.shift();
+        const counts = {};
+        history.forEach(l => counts[l] = (counts[l]||0)+1);
+        const mostCommon = Object.keys(counts).reduce((a,b) => counts[a]>counts[b]?a:b);
+
+        if (counts[mostCommon] >= 4) {
+            const now = Date.now()/1000;
+            const holdNeeded = LETTER_HOLD_OVERRIDE[mostCommon] ?? TIME_THRESHOLD;
+
+            if (mostCommon !== pendingLetter) {
+                pendingLetter        = mostCommon;
+                pendingStartTime     = now;
+                currentDisplayLetter = mostCommon;
+                holdBar.style.width  = '0%';
+                updateUI();
+            } else {
+                const held = now - pendingStartTime;
+                holdBar.style.width = `${Math.min(100,(held/holdNeeded)*100)}%`;
+                if (held > holdNeeded) {
+                    currentDisplayLetter = mostCommon;
+                    processGesture(mostCommon);
+                    pendingLetter       = '';
+                    pendingStartTime    = 0;
+                    history             = [];
+                    holdBar.style.width = '0%';
+                }
+            }
+        }
+    } else {
+        noHandMsg.classList.add('visible');
+        holdBar.style.width = '0%';
+    }
+    canvasCtx.restore();
+});
+
+const camera = new Camera(videoElement, {
+    onFrame: async () => { await hands.send({image:videoElement}); },
+    width:640, height:480
+});
+
+// ═══════════════════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════════════════
+startBtn.addEventListener('click', async () => {
+    try {
+        await camera.start();
+        startBtn.disabled = true;
+        statusBadge.className = 'status-badge active';
+        statusTextEl.textContent = UI_TEXT[currentLang].activeStatus;
+    } catch(e) {
+        statusBadge.className = 'status-badge error';
+        statusTextEl.textContent = UI_TEXT[currentLang].errorStatus;
+    }
+});
+
+speakBtn.addEventListener('click', () => {
+    triggerSpeak();
+});
+
+clearBtn.addEventListener('click', () => {
+    sentence=''; lastLoggedLetter=''; currentDisplayLetter='';
+    history=[]; motionBuffer=[]; holdBar.style.width='0%';
+    document.querySelectorAll('.legend-item').forEach(el=>{
+        el.classList.remove('active-letter');
+        el.classList.remove('active-speak');
+    });
+    updateUI();
+});
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+buildLegend('RU');
+updateUI();
+</script>
+</body>
+</html>
